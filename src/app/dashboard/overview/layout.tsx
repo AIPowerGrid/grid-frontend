@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
 
 export default function OverViewLayout({
-  sales,
+  models,
   pie_stats,
   bar_stats,
   area_stats
 }: {
-  sales: React.ReactNode;
+  models: React.ReactNode;
   pie_stats: React.ReactNode;
   bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
@@ -76,7 +76,7 @@ export default function OverViewLayout({
           </Card>
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>Sales</CardTitle>
+              <CardTitle className='text-sm font-medium'>Models</CardTitle>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
                 viewBox='0 0 24 24'
@@ -125,8 +125,8 @@ export default function OverViewLayout({
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
           <div className='col-span-4'>{bar_stats}</div>
           <div className='col-span-4 md:col-span-3'>
-            {/* Sales arallel routes */}
-            {sales}
+            {/* Models arallel routes */}
+            {models}
           </div>
           <div className='col-span-4'>{area_stats}</div>
           <div className='col-span-4 md:col-span-3'>{pie_stats}</div>

@@ -5786,7 +5786,7 @@
           ],
           "responses": {
             "200": {
-              "description": "List All Active Sales",
+              "description": "List All Active Models",
               "schema": {
                 "items": {
                   "$ref": "#/definitions/ActiveModel"

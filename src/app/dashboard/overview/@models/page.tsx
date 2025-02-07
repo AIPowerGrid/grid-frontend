@@ -1,7 +1,7 @@
 import { delay } from '@/constants/mock-api';
-import { RecentSales } from '@/features/overview/components/recent-sales';
+import { RecentModels } from '@/features/overview/components/recent-models';
 
 export default async function ModelStatusPage() {
   await delay(3000);
-  return <RecentSales />;
+  return <RecentModels />;
 }
