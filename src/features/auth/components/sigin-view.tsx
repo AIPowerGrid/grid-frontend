@@ -71,7 +71,7 @@ export default function SignInViewPage({ stars }: { stars: number }) {
               Create an account
             </h1>
             <p className='text-sm text-muted-foreground'>
-              Enter your email below to create your account
+              Authenticate to enter The Grid
             </p>
           </div>
           <UserAuthForm />

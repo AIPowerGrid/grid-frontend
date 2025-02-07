@@ -1,56 +1,297 @@
 'use client';
-import React from 'react';
-import dynamic from 'next/dynamic';
-import { Card } from '@/components/ui/card';
+import type React from 'react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Code } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 
-// Dynamically load the SwaggerUI component (only on the client).
-const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
+export default function ApiUsageView() {
+  const [textPrompt, setTextPrompt] = useState('');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [selectedTextModel, setSelectedTextModel] = useState('');
+  const [selectedImageModel, setSelectedImageModel] = useState('');
+  const [textResponse, setTextResponse] = useState('');
+  const [imageResponse, setImageResponse] = useState('');
+  const [textModels, setTextModels] = useState<any[]>([]);
+  const [imageModels, setImageModels] = useState<any[]>([]);
+  const [isTextLoading, setIsTextLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [showCode, setShowCode] = useState(false);
 
-// Import the Swagger UI default CSS.
-import 'swagger-ui-react/swagger-ui.css';
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const [textRes, imageRes] = await Promise.all([
+          fetch('/api/models?type=text'),
+          fetch('/api/models?type=image')
+        ]);
+        const textData = await textRes.json();
+        const imageData = await imageRes.json();
+        setTextModels(textData);
+        setImageModels(imageData);
+      } catch (error) {
+        console.error('Failed to fetch models', error);
+      }
+    }
+    fetchModels();
+  }, []);
 
-interface ApiUsageViewProps {
-  swaggerData: any;
-}
+  const handleTextSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsTextLoading(true);
+    try {
+      const res = await fetch('/api/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: textPrompt,
+          apiKey,
+          uuid: 'test-uuid',
+          model: selectedTextModel
+        })
+      });
+      const data = await res.json();
+      setTextResponse(data.response);
+    } catch (error) {
+      console.error('Error generating text:', error);
+    } finally {
+      setIsTextLoading(false);
+    }
+  };
 
-export default function ApiUsageView({ swaggerData }: ApiUsageViewProps) {
-  const { paths } = swaggerData;
-  if (!paths) {
-    return (
-      <Card className='p-6'>
-        <p>No API usage information available.</p>
-      </Card>
-    );
+  const handleImageSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsImageLoading(true);
+    try {
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          apiKey,
+          uuid: 'test-uuid',
+          model: selectedImageModel,
+          customSettings: {
+            nsfw: false,
+            batchSize: 1,
+            width: 512,
+            height: 512,
+            steps: 30,
+            sampler: 'default',
+            tiling: false,
+            clipSkip: 0,
+            karras: false,
+            hiResFix: false
+          }
+        })
+      });
+      const data = await res.json();
+      setImageResponse(data.response);
+    } catch (error) {
+      console.error('Error generating image:', error);
+    } finally {
+      setIsImageLoading(false);
+    }
+  };
+
+  const textApiCode = `
+curl -X POST https://api.aipowergrid.io/api/v2/generate/text/async \\
+-H "Content-Type: application/json" \\
+-H "apikey: YOUR_API_KEY" \\
+-d '{
+  "prompt": "Your prompt here",
+  "models": ["${selectedTextModel}"],
+  "params": {
+    "max_context_length": 512,
+    "max_length": 50,
+    "temperature": 0.7,
+    "top_p": 0.9
   }
+}'
+  `;
 
-  // Convert swagger paths into an array of endpoints.
-  const endpoints = Object.entries(paths).map(([path, methods]) => {
-    // methods is an object like { get: {...}, post: {...}, ... }
-    const methodEntries = Object.entries(methods);
-    return { path, methods: methodEntries };
-  });
+  const imageApiCode = `
+curl -X POST https://api.aipowergrid.io/api/v2/generate/async \\
+-H "Content-Type: application/json" \\
+-H "apikey: YOUR_API_KEY" \\
+-d '{
+  "prompt": "Your prompt here",
+  "models": ["${selectedImageModel}"],
+  "params": {
+    "n": 1,
+    "width": 512,
+    "height": 512,
+    "steps": 30,
+    "sampler_name": "DDIM",
+    "cfg_scale": 7.5
+  }
+}'
+  `;
 
   return (
-    <Card className='space-y-4 p-6'>
-      <h1 className='mb-4 text-2xl font-bold'>API Usage Information</h1>
-      {endpoints.map((endpoint, index) => (
-        <div key={index} className='mb-6'>
-          <h2 className='text-xl font-semibold text-slate-700 dark:text-slate-300'>
-            {endpoint.path}
-          </h2>
-          <ul className='ml-6 list-disc'>
-            {endpoint.methods.map(([method, details]: [string, any], idx) => (
-              <li key={idx} className='mt-1'>
-                <strong className='uppercase'>{method}</strong>
-                {details.summary && <span>: {details.summary}</span>}
-                {!details.summary && details.description && (
-                  <span>: {details.description}</span>
+    <div className='space-y-6 p-6'>
+      <div className='flex items-center justify-between'>
+        <h1 className='text-2xl font-bold'>AI Power Grid API Usage</h1>
+        <Button onClick={() => setShowCode(!showCode)} variant='outline'>
+          <Code className='mr-2 h-4 w-4' />
+          {showCode ? 'Hide Code' : 'Show Code'}
+        </Button>
+      </div>
+
+      {showCode && (
+        <Card>
+          <CardHeader>
+            <CardTitle>API Usage Examples</CardTitle>
+            <CardDescription>
+              Use these curl commands to interact with the AI Power Grid API
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue='text'>
+              <TabsList>
+                <TabsTrigger value='text'>Text Generation</TabsTrigger>
+                <TabsTrigger value='image'>Image Generation</TabsTrigger>
+              </TabsList>
+              <TabsContent value='text'>
+                <pre className='overflow-x-auto rounded-md bg-muted p-4'>
+                  <code>{textApiCode}</code>
+                </pre>
+              </TabsContent>
+              <TabsContent value='image'>
+                <pre className='overflow-x-auto rounded-md bg-muted p-4'>
+                  <code>{imageApiCode}</code>
+                </pre>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+        {/* Text Generation Column */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Text Generation</CardTitle>
+            <CardDescription>Generate text using AI models</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleTextSubmit} className='space-y-2'>
+              <input
+                type='text'
+                placeholder='Enter API Key'
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className='w-full rounded border p-2'
+              />
+              <input
+                type='text'
+                placeholder='Enter Text Prompt'
+                value={textPrompt}
+                onChange={(e) => setTextPrompt(e.target.value)}
+                className='w-full rounded border p-2'
+              />
+              <select
+                value={selectedTextModel}
+                onChange={(e) => setSelectedTextModel(e.target.value)}
+                className='w-full rounded border p-2'
+              >
+                <option value=''>Select Text Model</option>
+                {textModels.map((model) => (
+                  <option key={model.name} value={model.name}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+              <Button type='submit' disabled={isTextLoading} className='w-full'>
+                {isTextLoading ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Text'
                 )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </Card>
+              </Button>
+            </form>
+            {textResponse && (
+              <div className='mt-4 rounded border p-2'>
+                <h3 className='font-semibold'>Response:</h3>
+                <p>{textResponse}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Image Generation Column */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Image Generation</CardTitle>
+            <CardDescription>Generate images using AI models</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleImageSubmit} className='space-y-2'>
+              <input
+                type='text'
+                placeholder='Enter API Key'
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className='w-full rounded border p-2'
+              />
+              <input
+                type='text'
+                placeholder='Enter Image Prompt'
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+                className='w-full rounded border p-2'
+              />
+              <select
+                value={selectedImageModel}
+                onChange={(e) => setSelectedImageModel(e.target.value)}
+                className='w-full rounded border p-2'
+              >
+                <option value=''>Select Image Model</option>
+                {imageModels.map((model) => (
+                  <option key={model.name} value={model.name}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type='submit'
+                disabled={isImageLoading}
+                className='w-full'
+              >
+                {isImageLoading ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Image'
+                )}
+              </Button>
+            </form>
+            {imageResponse && (
+              <div className='mt-4 rounded border p-2'>
+                <h3 className='font-semibold'>Response:</h3>
+                <img
+                  src={imageResponse || '/placeholder.svg'}
+                  alt='Generated'
+                  className='mx-auto w-full max-w-md'
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

@@ -22,7 +22,7 @@ export const navItems: NavItem[] = [
     items: [] // Empty array as there are no child items for Dashboard
   },
   {
-    title: 'API Usage',
+    title: 'API Playground',
     url: '/dashboard/api-usage',
     icon: 'post',
     shortcut: ['p', 'p'],
@@ -30,39 +30,12 @@ export const navItems: NavItem[] = [
     items: [] // No child items
   },
   {
-    title: 'Account',
-    url: '#', // Placeholder as there is no direct link for the parent
-    icon: 'user',
+    title: 'API Key Generator',
+    url: '/dashboard/api-key',
+    icon: 'settings',
     isActive: true,
-
-    items: [
-      // {
-      //   title: 'Profile',
-      //   url: '/dashboard/profile',
-      //   icon: 'userPen',
-      //   shortcut: ['m', 'm']
-      // },
-      {
-        title: 'API Key',
-        shortcut: ['a', 'a'],
-        url: '/dashboard/api-key',
-        icon: 'add'
-      }
-      // {
-      //   title: 'Login',
-      //   shortcut: ['l', 'l'],
-      //   url: '/',
-      //   icon: 'login'
-      // }
-    ]
-  },
-  {
-    title: 'Kanban',
-    url: '/dashboard/kanban',
-    icon: 'kanban',
-    shortcut: ['k', 'k'],
-    isActive: false,
-    items: [] // No child items
+    shortcut: ['a', 'a'],
+    items: [] // Now a standalone top-level item
   }
 ];
 

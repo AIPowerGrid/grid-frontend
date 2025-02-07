@@ -9,16 +9,31 @@ import { Button } from '@/components/ui/button';
 export default function ApiKeyGenerator() {
   const [apiKey, setApiKey] = useState<string>('');
   const [generated, setGenerated] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const generateApiKey = () => {
-    // Generate a random 16-byte (32 hex characters) API key.
-    const randomBytes = new Uint8Array(16);
-    window.crypto.getRandomValues(randomBytes);
-    const key = Array.from(randomBytes, (byte) =>
-      byte.toString(16).padStart(2, '0')
-    ).join('');
-    setApiKey(key);
-    setGenerated(true);
+  // Calls the new API route to generate an API key.
+  const generateApiKey = async () => {
+    setLoading(true);
+    try {
+      // Generate a random hash on the client to pass as the username.
+      // Alternatively, you can omit sending username to let the server handle it.
+      const randomHash = crypto.randomUUID(); // or use another method like crypto.getRandomValues()
+      const response = await fetch('/api/generate-api-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: randomHash })
+      });
+      const data = await response.json();
+      if (data.apiKey) {
+        setApiKey(data.apiKey);
+        setGenerated(true);
+      } else {
+        console.error('Error generating API key:', data.error);
+      }
+    } catch (error) {
+      console.error('Error generating API key:', error);
+    }
+    setLoading(false);
   };
 
   const handleCopy = () => {
@@ -30,15 +45,15 @@ export default function ApiKeyGenerator() {
       <h1 className='text-2xl font-bold'>Generate Your API Key</h1>
       <p>
         This API key grants you access to our AI services. Please note: you are
-        responsible for securely storing this key. If you lose it, you'll have
-        to generate a new one.
+        responsible for securely storing this key. If you lose it, you&apos;ll
+        have to generate a new one.
       </p>
       <p className='text-sm text-muted-foreground'>
         Tip: Keep your API key private and never share it publicly!
       </p>
       {!generated ? (
-        <Button onClick={generateApiKey} variant='default'>
-          Generate API Key
+        <Button onClick={generateApiKey} variant='default' disabled={loading}>
+          {loading ? 'Generating...' : 'Generate API Key'}
         </Button>
       ) : (
         <div className='space-y-3'>

@@ -33,7 +33,29 @@ export async function GET(request: Request) {
       models = [...imageModels, ...textModels];
     }
 
-    return NextResponse.json(models);
+    // Aggregate worker counts by model name.
+    const workersByModel = models.reduce(
+      (
+        acc: Record<string, number>,
+        model: { name?: string; count?: number }
+      ) => {
+        if (model.name && typeof model.count === 'number') {
+          acc[model.name] = (acc[model.name] || 0) + model.count;
+        }
+        return acc;
+      },
+      {}
+    );
+
+    // Convert the aggregated data into an array.
+    const aggregatedWorkers = Object.entries(workersByModel).map(
+      ([name, count]) => ({
+        name,
+        count
+      })
+    );
+
+    return NextResponse.json(aggregatedWorkers);
   } catch (err) {
     return NextResponse.error();
   }

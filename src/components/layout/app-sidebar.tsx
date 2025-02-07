@@ -46,19 +46,10 @@ import { usePathname } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 
-// Create a logo component that renders your PNG logo.
-const AIPGLogo = ({ className }: { className?: string }) => {
-  return (
-    <img src='/aipg-main.png' alt='AI Power Grid Logo' className={className} />
-  );
-};
-
-export const company = {
-  name: 'AI Power Grid',
-  logo: AIPGLogo,
-  plan: 'Decentralized AI Network'
-};
-
+/*
+  Removed the existing AIPGLogo and company text header.
+  Instead, the header now renders a centered image (aipgweblogo.png) with effects for light/dark modes.
+*/
 export default function AppSidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -66,15 +57,15 @@ export default function AppSidebar() {
 
   return (
     <Sidebar collapsible='icon'>
-      <SidebarHeader>
-        <div className='flex gap-2 py-2 text-sidebar-accent-foreground'>
-          <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
-            <company.logo className='size-4' />
-          </div>
-          <div className='grid flex-1 text-left text-sm leading-tight'>
-            <span className='truncate font-semibold'>{company.name}</span>
-            <span className='truncate text-xs'>{company.plan}</span>
-          </div>
+      <SidebarHeader className='pt-3'>
+        <div className='flex flex-col items-center justify-center space-y-0.5'>
+          {state === 'expanded' && (
+            <img
+              src='/aipgweblogo.png'
+              alt='AI Power Grid'
+              className='h-10 object-contain brightness-90 invert filter transition-transform duration-200 dark:brightness-110 dark:invert-0'
+            />
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent className='overflow-x-hidden'>
@@ -189,7 +180,6 @@ export default function AppSidebar() {
                         {session?.user?.name || ''}
                       </span>
                       <span className='truncate text-xs'>
-                        {' '}
                         {session?.user?.email || ''}
                       </span>
                     </div>
@@ -198,10 +188,7 @@ export default function AppSidebar() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <BadgeCheck />
-                    Account
-                  </DropdownMenuItem>
+                  <DropdownMenuItem>Account</DropdownMenuItem>
                   {/* <DropdownMenuItem>
                     <CreditCard />
                     Billing
@@ -213,7 +200,6 @@ export default function AppSidebar() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()}>
-                  <LogOut />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>

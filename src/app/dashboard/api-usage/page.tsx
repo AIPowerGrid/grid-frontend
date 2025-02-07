@@ -5,7 +5,7 @@ import ApiUsageView from '@/features/api-usage/components/api-usage-view';
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 export const metadata = {
-  title: 'Dashboard : API Usage'
+  title: 'Dashboard : API Playground'
 };
 
 export default async function Page() {
@@ -17,7 +17,7 @@ export default async function Page() {
 
   return (
     <div className='p-8'>
-      <ApiUsageView swaggerData={swaggerData} />
+      <ApiUsageView />
     </div>
   );
 }

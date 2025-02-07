@@ -5,12 +5,12 @@ export async function GET(request: Request) {
     const baseAPIUrl = 'https://api.aipowergrid.io/api/v2/status/models';
     const { searchParams } = new URL(request.url);
     const typeParam = searchParams.get('type'); // Expected values: "image" or "text"
+
     let models: any[] = [];
 
     if (typeParam === 'image' || typeParam === 'text') {
       // Fetch models only for the specified type.
       const res = await fetch(`${baseAPIUrl}?type=${typeParam}`, {
-        // Caching: revalidate this response every 60 seconds.
         next: { revalidate: 60 }
       });
       if (!res.ok) {
@@ -33,7 +33,18 @@ export async function GET(request: Request) {
       models = [...imageModels, ...textModels];
     }
 
-    return NextResponse.json(models);
+    // Group by unique model names.
+    const uniqueNames = new Set();
+    models.forEach((model: { name?: string }) => {
+      if (model.name) {
+        uniqueNames.add(model.name);
+      }
+    });
+
+    // The count is the number of unique model names.
+    const count = uniqueNames.size;
+
+    return NextResponse.json({ count });
   } catch (err) {
     return NextResponse.error();
   }

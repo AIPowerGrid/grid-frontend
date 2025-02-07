@@ -68,7 +68,7 @@ export async function RecentModels() {
                 <p className='text-sm font-medium leading-none'>{model.name}</p>
                 <p className='text-sm text-muted-foreground'>{model.type}</p>
               </div>
-              <div className='ml-auto font-medium'>{model.count}</div>
+              <div className='ml-auto font-medium'>{model.count} workers</div>
             </div>
           ))}
         </div>
