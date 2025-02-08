@@ -20,7 +20,7 @@ export default async function OverViewLayout({
 }) {
   // Use an environment variable for the absolute base URL.
   // Set NEXTAUTH_URL in your environment variables (e.g. in .env.production and .env.local for dev)
-  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = 'https://dashboard.aipowergrid.io';
 
   // Build absolute URLs for internal API calls using the incoming baseUrl.
   const workersResponse = await fetch(
