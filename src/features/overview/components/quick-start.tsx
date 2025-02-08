@@ -41,9 +41,9 @@ export function QuickStart() {
             </Card>
           </Link>
 
-          {/* Omniworker Card */}
+          {/* Omniforge Card */}
           <Link
-            href='https://github.com/dex3r/AIPG-Omniworker'
+            href='https://github.com/AIPowerGrid/omniforge'
             target='_blank'
             rel='noopener noreferrer'
           >
@@ -53,7 +53,7 @@ export function QuickStart() {
                   <Code className='h-6 w-6 text-primary' />
                 </div>
                 <div>
-                  <h3 className='font-semibold'>Omniworker</h3>
+                  <h3 className='font-semibold'>Omniforge</h3>
                   <p className='text-sm text-muted-foreground'>
                     Image and text generation node
                   </p>
