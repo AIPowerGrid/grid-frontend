@@ -18,17 +18,15 @@ export default async function OverViewLayout({
   // bar_stats: React.ReactNode;
   // area_stats: React.ReactNode;
 }) {
-  // Construct the absolute base URL. Adjust this based on your deployment.
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000');
+  // Use an environment variable (server-only) for the absolute base URL.
+  // Set NEXTAUTH_URL in your environment variables (e.g. in .env.production and .env.local for dev)
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-  // Fetch the live workers count.
-  const workersResponse = await fetch(`${baseUrl}/api/workers-count`, {
-    next: { revalidate: 60 }
-  });
+  // Build absolute URLs for internal API calls using the incoming baseUrl.
+  const workersResponse = await fetch(
+    new URL('/api/workers-count', baseUrl).toString(),
+    { next: { revalidate: 60 } }
+  );
   let totalWorkers: number | string = 'N/A';
   if (workersResponse.ok) {
     const workersData = await workersResponse.json();
@@ -39,19 +37,20 @@ export default async function OverViewLayout({
     );
   }
 
-  // Fetch the live model count.
-  const modelsResponse = await fetch(`${baseUrl}/api/models-count`, {
-    next: { revalidate: 60 }
-  });
+  // Build absolute URLs for internal API calls using the incoming baseUrl.
+  const modelsResponse = await fetch(
+    new URL('/api/models-count', baseUrl).toString(),
+    { next: { revalidate: 60 } }
+  );
   let liveModelCount: number | string = 'N/A';
   if (modelsResponse.ok) {
     const data = await modelsResponse.json();
     liveModelCount = data.count;
   }
 
-  // Fetch generation stats totals (for images and text) using our new API route.
+  // Build absolute URLs for internal API calls using the incoming baseUrl.
   const statsResponse = await fetch(
-    `${baseUrl}/api/historical-stats?timeframe=total`,
+    new URL('/api/historical-stats?timeframe=total', baseUrl).toString(),
     { next: { revalidate: 60 } }
   );
   let totalImageGenModels: number | string = 'N/A';
