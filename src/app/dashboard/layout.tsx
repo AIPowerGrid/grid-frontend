@@ -5,7 +5,9 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
+// Merge the metadata with the base URL info from the root layout.
 export const metadata: Metadata = {
+  metadataBase: new URL('https://dashboard.aipowergrid.io'),
   title: 'AI Power Grid Dashboard',
   description:
     'Manage and monitor your AI Power Grid resources with the AIPG dashboard.'
