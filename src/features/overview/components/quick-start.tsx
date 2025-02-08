@@ -21,7 +21,7 @@ export function QuickStart() {
         <div className='grid gap-4 sm:grid-cols-2'>
           {/* Art Gallery Card */}
           <Link
-            href='https://images.aipg.art'
+            href='https://aipg.art'
             target='_blank'
             rel='noopener noreferrer'
           >
