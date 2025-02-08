@@ -30,8 +30,8 @@ export default function ApiUsageView() {
     async function fetchModels() {
       try {
         const [textRes, imageRes] = await Promise.all([
-          fetch('/api/models?type=text'),
-          fetch('/api/models?type=image')
+          fetch('https://dashboard.aipowergrid.io/api/models?type=text'),
+          fetch('https://dashboard.aipowergrid.io/api/models?type=image')
         ]);
         const textData = await textRes.json();
         const imageData = await imageRes.json();
