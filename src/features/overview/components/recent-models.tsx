@@ -18,16 +18,8 @@ interface Model {
 }
 
 export async function RecentModels() {
-  // Construct the absolute base URL.
-  // Adjust the logic below as needed for your project (e.g. using an env variable).
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000');
-
   // Fetch models using the absolute URL.
-  const res = await fetch(`${baseUrl}/api/models`, {
+  const res = await fetch(`https://dashboard.aipowergrid.io/api/models`, {
     next: { revalidate: 60 }
   });
 

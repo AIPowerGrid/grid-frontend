@@ -30,8 +30,8 @@ export default function ApiUsageView() {
     async function fetchModels() {
       try {
         const [textRes, imageRes] = await Promise.all([
-          fetch('/api/models?type=text'),
-          fetch('/api/models?type=image')
+          fetch('https://dashboard.aipowergrid.io/api/models?type=text'),
+          fetch('https://dashboard.aipowergrid.io/api/models?type=image')
         ]);
         const textData = await textRes.json();
         const imageData = await imageRes.json();
@@ -48,16 +48,19 @@ export default function ApiUsageView() {
     e.preventDefault();
     setIsTextLoading(true);
     try {
-      const res = await fetch('/api/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: textPrompt,
-          apiKey,
-          uuid: 'test-uuid',
-          model: selectedTextModel
-        })
-      });
+      const res = await fetch(
+        'https://dashboard.aipowergrid.io/api/generate-text',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: textPrompt,
+            apiKey,
+            uuid: 'test-uuid',
+            model: selectedTextModel
+          })
+        }
+      );
       const data = await res.json();
       setTextResponse(data.response);
     } catch (error) {
@@ -71,28 +74,31 @@ export default function ApiUsageView() {
     e.preventDefault();
     setIsImageLoading(true);
     try {
-      const res = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: imagePrompt,
-          apiKey,
-          uuid: 'test-uuid',
-          model: selectedImageModel,
-          customSettings: {
-            nsfw: false,
-            batchSize: 1,
-            width: 512,
-            height: 512,
-            steps: 30,
-            sampler: 'default',
-            tiling: false,
-            clipSkip: 0,
-            karras: false,
-            hiResFix: false
-          }
-        })
-      });
+      const res = await fetch(
+        'https://dashboard.aipowergrid.io/api/generate-image',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: imagePrompt,
+            apiKey,
+            uuid: 'test-uuid',
+            model: selectedImageModel,
+            customSettings: {
+              nsfw: false,
+              batchSize: 1,
+              width: 512,
+              height: 512,
+              steps: 30,
+              sampler: 'default',
+              tiling: false,
+              clipSkip: 0,
+              karras: false,
+              hiResFix: false
+            }
+          })
+        }
+      );
       const data = await res.json();
       setImageResponse(data.response);
     } catch (error) {
