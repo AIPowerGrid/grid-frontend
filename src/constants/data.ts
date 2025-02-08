@@ -24,10 +24,19 @@ export const navItems: NavItem[] = [
   {
     title: 'API Playground',
     url: '/dashboard/api-usage',
-    icon: 'post',
+    icon: 'flask',
     shortcut: ['p', 'p'],
     isActive: false,
     items: [] // No child items
+  },
+  {
+    title: 'API Documentation ↗',
+    url: 'https://dashboard.aipowergrid.io/api-doc',
+    icon: 'network',
+    shortcut: ['r', 'r'],
+    isActive: false,
+    external: true,
+    items: []
   },
   {
     title: 'API Key Generator',

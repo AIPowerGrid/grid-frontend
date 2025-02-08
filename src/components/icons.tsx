@@ -30,7 +30,9 @@ import {
   UserCircle2Icon,
   UserPen,
   UserX2Icon,
-  X
+  X,
+  Network,
+  FlaskConical
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
@@ -40,6 +42,8 @@ export const Icons = {
   logo: Command,
   login: LogIn,
   close: X,
+  flask: FlaskConical,
+  network: Network,
   product: LucideShoppingBag,
   spinner: Loader2,
   kanban: CircuitBoardIcon,
