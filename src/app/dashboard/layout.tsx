@@ -6,8 +6,9 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn Dashboard Starter',
-  description: 'Basic dashboard with Next.js and Shadcn'
+  title: 'AI Power Grid Dashboard',
+  description:
+    'Manage and monitor your AI Power Grid resources with the AIPG dashboard.'
 };
 
 export default async function DashboardLayout({
