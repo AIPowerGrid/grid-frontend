@@ -18,9 +18,9 @@ export default async function OverViewLayout({
   // bar_stats: React.ReactNode;
   // area_stats: React.ReactNode;
 }) {
-  // Use an environment variable (server-only) for the absolute base URL.
+  // Use an environment variable for the absolute base URL.
   // Set NEXTAUTH_URL in your environment variables (e.g. in .env.production and .env.local for dev)
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
 
   // Build absolute URLs for internal API calls using the incoming baseUrl.
   const workersResponse = await fetch(

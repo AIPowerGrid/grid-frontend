@@ -20,7 +20,7 @@ interface Model {
 export async function RecentModels() {
   // Use an environment variable (server-only) for the absolute base URL.
   // Set NEXTAUTH_URL in your environment variables (e.g. in .env.production and .env.local for dev)
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
 
   // Fetch models using the absolute URL.
   const res = await fetch(`${baseUrl}/api/models`, {
