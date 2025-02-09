@@ -22,6 +22,14 @@ export const navItems: NavItem[] = [
     items: [] // Empty array as there are no child items for Dashboard
   },
   {
+    title: 'Grid Workers',
+    url: '/dashboard/workers',
+    icon: 'user2',
+    shortcut: ['w', 'w'],
+    isActive: false,
+    items: [] // Empty array as there are no child items for Workers
+  },
+  {
     title: 'API Playground',
     url: '/dashboard/api-usage',
     icon: 'flask',
