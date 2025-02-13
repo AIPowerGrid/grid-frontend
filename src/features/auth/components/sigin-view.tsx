@@ -53,9 +53,7 @@ export default function SignInViewPage() {
             />
           </div>
           <div className='flex flex-col space-y-2 text-center'>
-            <h1 className='text-2xl font-semibold tracking-tight'>
-              Create an account
-            </h1>
+            <h1 className='text-2xl font-semibold tracking-tight'>Login</h1>
             <p className='text-sm text-muted-foreground'>
               Authenticate to enter The Grid
             </p>
