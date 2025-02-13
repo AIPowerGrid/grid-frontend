@@ -1,5 +1,7 @@
 'use client';
 
+const IS_TESTING = true; // Set to true if in testing mode (rewards are not being issued)
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,12 +16,6 @@ export default function RewardsView() {
   const [error, setError] = useState('');
   // Store the previous rewards value to compare changes.
   const [prevKudos, setPrevKudos] = useState<number | null>(null);
-  // Delta between polls.
-  const [delta, setDelta] = useState<number | null>(null);
-  // Log the four most recent changes.
-  const [changeLogs, setChangeLogs] = useState<
-    { timestamp: string; change: number }[]
-  >([]);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -46,8 +42,6 @@ export default function RewardsView() {
     setError('');
     setWorker(null);
     setPrevKudos(null);
-    setDelta(null);
-    setChangeLogs([]);
 
     if (!aipgAddressRegex.test(address)) {
       setError('Invalid AIPG address format');
@@ -73,20 +67,7 @@ export default function RewardsView() {
         const updatedWorker = await fetchRewards();
         if (updatedWorker) {
           const newKudos = updatedWorker.kudos_rewards || 0;
-          // Only update if we have a baseline to compare.
-          if (prevKudos !== null) {
-            const diff = newKudos - prevKudos;
-            setDelta(diff);
-            // Log this change
-            setChangeLogs((prevLogs) => {
-              const newEntry = {
-                timestamp: new Date().toISOString(),
-                change: diff
-              };
-              const updatedLogs = [newEntry, ...prevLogs];
-              return updatedLogs.slice(0, 4); // keep only the latest 4 entries
-            });
-          }
+          // Update the baseline.
           setPrevKudos(newKudos);
           setWorker(updatedWorker);
         }
@@ -97,7 +78,7 @@ export default function RewardsView() {
         if (intervalRef.current) clearInterval(intervalRef.current);
       };
     }
-  }, [worker, address, prevKudos]);
+  }, [worker, address]);
 
   return (
     <Card className='mx-auto w-full max-w-xl'>
@@ -105,6 +86,11 @@ export default function RewardsView() {
         <CardTitle>Worker Rewards Details</CardTitle>
       </CardHeader>
       <CardContent>
+        {IS_TESTING && (
+          <div className='mb-4 rounded bg-yellow-200 p-2 text-yellow-800'>
+            <strong>Testing:</strong> Rewards are not being issued.
+          </div>
+        )}
         <form onSubmit={handleSearch} className='mb-4 flex space-x-2'>
           <Input
             value={address}
@@ -148,36 +134,86 @@ export default function RewardsView() {
                   : 'N/A'}
               </p>
             </div>
-            {delta !== null && (
-              <p>
-                <strong>Change since last check:</strong>{' '}
-                {delta !== 0
-                  ? delta > 0
-                    ? `+${delta.toLocaleString()}`
-                    : delta.toLocaleString()
-                  : 'No change'}
-              </p>
-            )}
-          </div>
-        )}
-        {changeLogs.length > 0 && (
-          <div className='mt-6'>
-            <h3 className='mb-2 text-lg font-semibold'>Recent Changes</h3>
-            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-              {changeLogs.map((log, index) => (
-                <Card key={index} className='p-4'>
-                  <p className='text-sm opacity-60'>
-                    {new Date(log.timestamp).toLocaleString()}
-                  </p>
-                  <p className='text-xl font-bold'>
-                    {log.change > 0 ? `+${log.change}` : log.change}
-                  </p>
-                </Card>
-              ))}
-            </div>
+
+            {/* Payment History Section */}
+            <PaymentHistory address={worker.name} />
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/* PaymentHistory Component */
+function PaymentHistory({ address }: { address: string }) {
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [paymentsError, setPaymentsError] = useState('');
+
+  useEffect(() => {
+    async function fetchPayments() {
+      setLoadingPayments(true);
+      try {
+        const res = await fetch(`/api/sentry/workerRewards/${address}`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch payments data');
+        }
+        const data = await res.json();
+        setPayments(data);
+      } catch (error: any) {
+        console.error(error);
+        setPaymentsError(error.message || 'Error fetching payments');
+      } finally {
+        setLoadingPayments(false);
+      }
+    }
+    fetchPayments();
+  }, [address]);
+
+  return (
+    <div className='mt-6'>
+      <h3 className='mb-2 text-lg font-semibold'>Payment History</h3>
+      {loadingPayments ? (
+        <p>Loading payments...</p>
+      ) : paymentsError ? (
+        <p className='text-red-500'>{paymentsError}</p>
+      ) : (
+        <div className='overflow-x-auto'>
+          <table className='min-w-full divide-y divide-gray-200 text-sm'>
+            <thead>
+              <tr>
+                <th className='px-4 py-2 text-left'>Timestamp</th>
+                <th className='px-4 py-2 text-left'>Amount (AIPG)</th>
+                <th className='px-4 py-2 text-left'>Points Diff</th>
+              </tr>
+            </thead>
+            <tbody className='divide-y divide-gray-200'>
+              {payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td className='px-4 py-2'>
+                    {new Date(payment.timestamp).toLocaleString()}
+                  </td>
+                  <td className='px-4 py-2'>
+                    {Number(payment.amount).toLocaleString()}
+                  </td>
+                  <td className='px-4 py-2'>
+                    {payment.kudos_diff > 0
+                      ? `+${payment.kudos_diff}`
+                      : payment.kudos_diff}
+                  </td>
+                </tr>
+              ))}
+              {payments.length === 0 && (
+                <tr>
+                  <td colSpan={3} className='px-4 py-2 text-center'>
+                    No payment history found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

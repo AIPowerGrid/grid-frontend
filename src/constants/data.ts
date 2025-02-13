@@ -29,14 +29,14 @@ export const navItems: NavItem[] = [
     isActive: false,
     items: [] // Empty array as there are no child items for Workers
   },
-  // {
-  //   title: 'Rewards',
-  //   url: '/dashboard/rewards',
-  //   icon: 'user2',
-  //   shortcut: ['w', 'w'],
-  //   isActive: false,
-  //   items: [] // Empty array as there are no child items for Rewards
-  // },
+  {
+    title: 'Rewards (Beta)',
+    url: '/dashboard/rewards',
+    icon: 'billing',
+    shortcut: ['w', 'w'],
+    isActive: false,
+    items: [] // Empty array as there are no child items for Rewards
+  },
   {
     title: 'API Playground',
     url: '/dashboard/api-usage',
