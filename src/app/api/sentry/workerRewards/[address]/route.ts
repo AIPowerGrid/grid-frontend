@@ -2,11 +2,9 @@ import { NextResponse, NextRequest } from 'next/server';
 
 const aipgAddressRegex = /^[A][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { address: string } }
-) {
-  const { address } = params;
+export async function GET(request: NextRequest, context: any) {
+  // Destructure the address from the context object.
+  const { address } = context?.params || {};
 
   // Validate the AIPG address.
   if (!aipgAddressRegex.test(address)) {
@@ -32,7 +30,7 @@ export async function GET(
 
     const data = await externalRes.json();
 
-    // Optionally, sort by timestamp (newest first).
+    // Sort by timestamp (newest first).
     data.sort(
       (a: any, b: any) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
