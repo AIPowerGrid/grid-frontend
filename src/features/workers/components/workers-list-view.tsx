@@ -68,7 +68,7 @@ export default function WorkersListView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className='p-1'>Name</TableHead>
+                  <TableHead className='p-1'>Address</TableHead>
                   <TableHead className='p-1'>Type</TableHead>
                   <TableHead className='p-1'>Status</TableHead>
                   <TableHead className='p-1'>Performance</TableHead>
