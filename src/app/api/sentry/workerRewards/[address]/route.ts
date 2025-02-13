@@ -1,13 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 const aipgAddressRegex = /^[A][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
 
 export async function GET(
-  request: Request,
-  context: { params: { address: string } }
+  request: NextRequest,
+  { params }: { params: { address: string } }
 ) {
-  // Await the params to ensure dynamic values are resolved
-  const { address } = await Promise.resolve(context.params);
+  const { address } = params;
 
   // Validate the AIPG address.
   if (!aipgAddressRegex.test(address)) {
