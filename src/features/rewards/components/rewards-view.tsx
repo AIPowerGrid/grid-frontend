@@ -14,7 +14,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 
-const IS_TESTING = true; // Set to true if in testing mode (rewards are not being issued)
+const IS_TESTING = false; // Set to true if in testing mode (rewards are not being issued)
 const AIPG_ADDRESS_REGEX = /^[A][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
 
 export default function RewardsView() {
