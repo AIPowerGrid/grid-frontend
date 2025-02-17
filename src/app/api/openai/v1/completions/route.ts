@@ -86,7 +86,10 @@ export async function POST(request: NextRequest) {
         const { data } = await axios.get<GenerationResponse>(statusEndpoint, {
           headers: headersForGrid
         });
+        console.log('Grid API response:', data);
+
         if (data.done) {
+          console.log('Final generated text:', data.generations[0].text);
           return data.generations[0].text.trim();
         }
       }
