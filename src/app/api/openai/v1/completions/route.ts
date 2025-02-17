@@ -1,6 +1,6 @@
 import axios from 'axios';
 import https from 'https';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
 interface GenerationResponse {
@@ -18,35 +18,35 @@ const httpsAgent = new https.Agent({
 
 export async function POST(request: NextRequest) {
   try {
-    // Extract the API key from the Authorization header if present.
+    // Extract the API key from the Authorization header (if provided).
     const authHeader = request.headers.get('Authorization');
     let authApiKey: string | undefined;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       authApiKey = authHeader.split(' ')[1];
     }
 
-    // Parse the request body.
+    // Parse the incoming request body.
     const body = await request.json();
 
-    // Use API key from the header or the body.
+    // Use API key from the header if provided; otherwise, try the body.
     const apiKey = authApiKey || body.apiKey;
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'Missing API key in header or body.' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      return NextResponse.json(
+        { error: 'Missing API key in header or body.' },
+        { status: 401 }
       );
     }
 
-    // When forcePrompt is true, Librechat will send a "prompt" property instead of "messages".
+    // Expect a "prompt" field (used when forcePrompt is enabled).
     const prompt = body.prompt;
     if (!prompt) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required prompt field.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return NextResponse.json(
+        { error: 'Missing required prompt field.' },
+        { status: 400 }
       );
     }
 
-    // Extract other parameters.
+    // Extract other parameters; use defaults if not provided.
     const {
       model = 'aphrodite/deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
       temperature = 0.7,
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       sessionId
     } = body;
 
-    // Generate or reuse a session Id.
+    // Generate or reuse a session ID (if needed for your internal tracking).
     const currentSessionId = sessionId || uuidv4();
 
     const headersForGrid = {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json'
     };
 
-    // Build the payload for the grid API using the prompt directly.
+    // Build a simplified payload for the Grid API.
     const payload = {
       prompt,
       models: [model],
@@ -72,22 +72,11 @@ export async function POST(request: NextRequest) {
         max_context_length: 512,
         max_length: max_tokens,
         temperature,
-        top_p: 0.9,
-        n: 1,
-        width: 512,
-        height: 512,
-        steps: 30,
-        sampler_name: 'DDIM',
-        cfg_scale: 7.5,
-        tiling: false,
-        clip_skip: 1,
-        post_processing: [],
-        karras: false,
-        hires_fix: false
+        top_p: 0.9
       }
     };
 
-    // Submit the generation job to the grid API.
+    // Submit the generation request to the grid API.
     const { data: jobData } = await axios.post<{ id: string }>(
       gridGenerateUrl,
       payload,
@@ -95,10 +84,11 @@ export async function POST(request: NextRequest) {
     );
     const jobID = jobData.id;
 
-    // Poll the grid API until the generation is ready.
+    // Poll the grid API until the generation is complete.
     const pollGrid = async (jobID: string): Promise<string> => {
       const statusEndpoint = `${gridStatusUrl}/${jobID}`;
       while (true) {
+        // Wait 2 seconds between polls.
         await new Promise((resolve) => setTimeout(resolve, 2000));
         const { data } = await axios.get<GenerationResponse>(statusEndpoint, {
           headers: headersForGrid,
@@ -112,12 +102,13 @@ export async function POST(request: NextRequest) {
 
     const resultText = await pollGrid(jobID);
 
-    // Build a response payload following OpenAI's text completions format.
+    // Construct the legacy completions response.
     const responsePayload = {
       id: uuidv4(),
       object: 'text_completion',
       created: Math.floor(Date.now() / 1000),
       model,
+      // Optional: you may add a system_fingerprint property if available.
       choices: [
         {
           text: resultText,
@@ -127,31 +118,19 @@ export async function POST(request: NextRequest) {
         }
       ],
       usage: {
-        prompt_tokens: 0,
+        prompt_tokens: 0, // Replace with actual count if available.
         completion_tokens: resultText.split(' ').length,
         total_tokens: resultText.split(' ').length
       }
     };
 
-    // Create a streaming response using a ReadableStream.
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        // Enqueue the entire JSON payload as one chunk.
-        controller.enqueue(encoder.encode(JSON.stringify(responsePayload)));
-        controller.close();
-      }
-    });
-
-    return new Response(stream, {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Return the response as a single JSON payload (no streaming).
+    return NextResponse.json(responsePayload, { status: 200 });
   } catch (error) {
     console.error('Error in completions adapter:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
