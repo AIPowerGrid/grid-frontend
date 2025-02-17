@@ -51,13 +51,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Convert messages into a single instruction prompt.
-    const instruction = messages
-      .map(
-        (msg: { role: string; content: string }) =>
-          `${msg.role}: ${msg.content}`
-      )
-      .join('\n\n');
+    // Create additional context so the AI knows the output needs to be formatted for the end-user,
+    // using no more than max_tokens tokens.
+    const additionalContext = `Instruction:
+- Generate a response that is clearly formatted for the end user.
+- Use a maximum of ${max_tokens} tokens.
+`;
+    // Combine the additional context with the conversation messages.
+    // The messages are transformed into a prompt format, e.g., "role: content" per message.
+    const instruction =
+      additionalContext +
+      '\n' +
+      messages
+        .map(
+          (msg: { role: string; content: string }) =>
+            `${msg.role}: ${msg.content}`
+        )
+        .join('\n\n');
 
     const headersForGrid = {
       apikey: apiKey,
