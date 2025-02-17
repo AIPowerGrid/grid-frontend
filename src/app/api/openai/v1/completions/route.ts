@@ -1,5 +1,4 @@
 import axios from 'axios';
-import https from 'https';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,11 +9,6 @@ interface GenerationResponse {
 
 const gridGenerateUrl = `https://api.aipowergrid.io/api/v2/generate/text/async`;
 const gridStatusUrl = `https://api.aipowergrid.io/api/v2/generate/text/status`;
-
-// Create an HTTPS agent with the required servername.
-const httpsAgent = new https.Agent({
-  servername: 'api.aipowergrid.io'
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,7 +73,7 @@ export async function POST(request: NextRequest) {
     const { data: jobData } = await axios.post<{ id: string }>(
       gridGenerateUrl,
       payload,
-      { headers: headersForGrid, httpsAgent }
+      { headers: headersForGrid }
     );
     const jobID = jobData.id;
 
@@ -90,8 +84,7 @@ export async function POST(request: NextRequest) {
         // Wait 2 seconds between polls.
         await new Promise((resolve) => setTimeout(resolve, 2000));
         const { data } = await axios.get<GenerationResponse>(statusEndpoint, {
-          headers: headersForGrid,
-          httpsAgent
+          headers: headersForGrid
         });
         if (data.done) {
           return data.generations[0].text.trim();
@@ -117,7 +110,7 @@ export async function POST(request: NextRequest) {
         }
       ],
       usage: {
-        prompt_tokens: 0, // Replace with actual count if available.
+        prompt_tokens: 0, // Replace with an actual count if available.
         completion_tokens: resultText.split(' ').length,
         total_tokens: resultText.split(' ').length
       }
@@ -127,6 +120,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(responsePayload, { status: 200 });
   } catch (error) {
     console.error('Error in completions adapter:', error);
+    // Log the detailed response from the Grid API to help diagnose the 400 error:
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
