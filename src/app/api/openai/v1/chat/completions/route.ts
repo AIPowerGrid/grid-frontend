@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const resultText = await pollGrid(jobID);
 
     if (!streamMode) {
-      // Non-streaming response: return full payload
+      // Non-streaming response: return full payload as JSON
       const responsePayload = {
         id: uuidv4(),
         object: 'chat.completion',
@@ -126,17 +126,19 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' }
       });
     } else {
-      // Streaming mode: Deliver the response as SSE (Server Sent Events)
+      // Streaming mode: Deliver the response as SSE (Server-Sent Events)
       const encoder = new TextEncoder();
-      // Use the same id for all chunks and record the creation time
+      // Use a common ID and creation timestamp for all chunks.
       const commonId = uuidv4();
       const createdTime = Math.floor(Date.now() / 1000);
       const stream = new ReadableStream({
         async start(controller) {
-          // Split the generated text into tokens (here, by whitespace)
+          // Split the generated text by whitespace.
           const tokens = resultText.split(' ');
-          // Yield each token as an SSE event.
-          for (const token of tokens) {
+          // For each token, send an SSE event.
+          for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            const isLast = i === tokens.length - 1;
             const chunkData = {
               id: commonId,
               object: 'chat.completion.chunk',
@@ -144,20 +146,18 @@ export async function POST(request: NextRequest) {
               model,
               choices: [
                 {
-                  // Provide the incremental token in the delta.
-                  // (In production, you may want to send the truly incremental delta rather than each token.)
-                  delta: { content: token + ' ' },
+                  delta: { content: token + (isLast ? '' : ' ') },
                   index: 0,
-                  finish_reason: null
+                  finish_reason: isLast ? 'stop' : null
                 }
               ]
             };
             const sseChunk = 'data: ' + JSON.stringify(chunkData) + '\n\n';
             controller.enqueue(encoder.encode(sseChunk));
-            // Optionally simulate a slight delay between chunks.
+            // Optionally simulate a small delay between chunks.
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
-          // Send end-of-stream message.
+          // Optionally, send a final SSE [DONE] message.
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         }
