@@ -118,12 +118,14 @@ export async function POST(request: NextRequest) {
 
     // Return the response as a single JSON payload (no streaming).
     return NextResponse.json(responsePayload, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in completions adapter:', error);
-    // Log the detailed response from the Grid API to help diagnose the 400 error:
-    if (error.response) {
+
+    // Use axios.isAxiosError to safely access error.response if available.
+    if (axios.isAxiosError(error) && error.response) {
       console.error('Response data:', error.response.data);
     }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
