@@ -11,14 +11,14 @@ interface GenerationResponse {
 const gridGenerateUrl = `https://api.aipowergrid.io/api/v2/generate/text/async`;
 const gridStatusUrl = `https://api.aipowergrid.io/api/v2/generate/text/status`;
 
-// Create a custom HTTPS agent with the proper servername.
+// Create an HTTPS agent with the required servername.
 const httpsAgent = new https.Agent({
   servername: 'api.aipowergrid.io'
 });
 
 export async function POST(request: NextRequest) {
   try {
-    // First, attempt to extract the API key from the Authorization header.
+    // Extract the API key from the Authorization header if present.
     const authHeader = request.headers.get('Authorization');
     let authApiKey: string | undefined;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -28,52 +28,43 @@ export async function POST(request: NextRequest) {
     // Parse the request body.
     const body = await request.json();
 
-    // Use the API key from the header if provided; otherwise, fall back to the body.
+    // Use API key from the header or the body.
     const apiKey = authApiKey || body.apiKey;
     if (!apiKey) {
       return new Response(
-        JSON.stringify({
-          error: 'Missing API key in Authorization header or body.'
-        }),
+        JSON.stringify({ error: 'Missing API key in header or body.' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
+    // When forcePrompt is true, Librechat will send a "prompt" property instead of "messages".
+    const prompt = body.prompt;
+    if (!prompt) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required prompt field.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extract other parameters.
     const {
-      messages,
       model = 'aphrodite/deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
       temperature = 0.7,
       max_tokens = 50,
       sessionId
     } = body;
 
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or empty "messages" array.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Convert the chat messages into a single instruction prompt.
-    const instruction = messages
-      .map(
-        (msg: { role: string; content: string }) =>
-          `${msg.role}: ${msg.content}`
-      )
-      .join('\n\n');
-
-    // Optionally, generate or reuse a session ID.
+    // Generate or reuse a session Id.
     const currentSessionId = sessionId || uuidv4();
 
-    // Prepare headers for the grid API.
-    const headers = {
+    const headersForGrid = {
       apikey: apiKey,
       'Content-Type': 'application/json'
     };
 
-    // Prepare the payload to send to the grid API.
+    // Build the payload for the grid API using the prompt directly.
     const payload = {
-      prompt: instruction,
+      prompt,
       models: [model],
       n: 1,
       trusted_workers: false,
@@ -100,17 +91,17 @@ export async function POST(request: NextRequest) {
     const { data: jobData } = await axios.post<{ id: string }>(
       gridGenerateUrl,
       payload,
-      { headers, httpsAgent }
+      { headers: headersForGrid, httpsAgent }
     );
     const jobID = jobData.id;
 
-    // Poll the grid API until the generation is complete.
+    // Poll the grid API until the generation is ready.
     const pollGrid = async (jobID: string): Promise<string> => {
       const statusEndpoint = `${gridStatusUrl}/${jobID}`;
       while (true) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         const { data } = await axios.get<GenerationResponse>(statusEndpoint, {
-          headers,
+          headers: headersForGrid,
           httpsAgent
         });
         if (data.done) {
@@ -121,19 +112,17 @@ export async function POST(request: NextRequest) {
 
     const resultText = await pollGrid(jobID);
 
-    // Construct the response payload mimicking OpenAI's chat completions format.
+    // Build a response payload following OpenAI's text completions format.
     const responsePayload = {
       id: uuidv4(),
-      object: 'chat.completion',
+      object: 'text_completion',
       created: Math.floor(Date.now() / 1000),
       model,
       choices: [
         {
+          text: resultText,
           index: 0,
-          message: {
-            role: 'assistant',
-            content: resultText
-          },
+          logprobs: null,
           finish_reason: 'stop'
         }
       ],
@@ -159,7 +148,7 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error in chat completions adapter:', error);
+    console.error('Error in completions adapter:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
