@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
       n: 1,
       trusted_workers: false,
       params: {
-        max_context_length: 512,
         max_length: max_tokens,
         temperature,
         top_p: 0.9
