@@ -2,7 +2,6 @@ import axios from 'axios';
 import https from 'https';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import crypto from 'crypto';
 
 interface GenerationResponse {
   done: boolean;
@@ -17,29 +16,9 @@ const httpsAgent = new https.Agent({
   servername: 'api.aipowergrid.io'
 });
 
-// Helper function that extracts the final answer.
-// It searches for "Final Answer:" in the text and returns only the text that follows.
-function filterFinalAnswer(text: string): string {
-  const marker = 'Final Answer:';
-  const index = text.indexOf(marker);
-  if (index !== -1) {
-    return text.slice(index + marker.length).trim();
-  }
-  // If the marker isn't found, return the entire text trimmed.
-  return text.trim();
-}
-
 export async function POST(request: NextRequest) {
   try {
-    // Generate a dynamic fingerprint for this request.
-    const systemFingerprint =
-      'fp_' +
-      crypto
-        .createHash('md5')
-        .update(Date.now().toString() + Math.random().toString())
-        .digest('hex');
-
-    // Get API key from Authorization header if present.
+    // Extract API key from Authorization header (if available)
     const authHeader = request.headers.get('Authorization');
     let authApiKey: string | undefined;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -54,7 +33,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Determine whether streaming mode is requested.
+    // Check if streaming is requested
     const streamMode = body.stream === true;
 
     const {
@@ -72,17 +51,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Updated instructions: the model must perform all internal reasoning silently.
-    // It must output exactly one line starting with "Final Answer:" having no additional text.
+    // Create additional context so the AI knows the output needs to be formatted for the end-user,
+    // using no more than max_tokens tokens.
     const additionalContext = `Instruction:
-- You are a highly efficient assistant.
-- Do all internal reasoning silently and do NOT output any chain-of-thought or intermediate notes.
-- Only provide a single final answer without any explanation.
-- Your OUTPUT MUST be exactly one line that begins with "Final Answer:" immediately followed by your final answer.
-- Do not include any text before "Final Answer:".
-- Use a maximum of ${max_tokens} tokens for your final answer.
+- Generate a response that is clearly formatted for the end user.
+- Use a maximum of ${max_tokens} tokens.
 `;
-    // Assemble the full prompt.
+    // Combine the additional context with the conversation messages.
+    // The messages are transformed into a prompt format, e.g., "role: content" per message.
     const instruction =
       additionalContext +
       '\n' +
@@ -98,7 +74,7 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json'
     };
 
-    // Create payload for the Grid API.
+    // Build the payload for the Grid API.
     const payload = {
       prompt: instruction,
       models: [model],
@@ -111,7 +87,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    // Submit the generation request.
+    // Submit the generation request to the Grid API.
     const { data: jobData } = await axios.post<{ id: string }>(
       gridGenerateUrl,
       payload,
@@ -119,7 +95,7 @@ export async function POST(request: NextRequest) {
     );
     const jobID = jobData.id;
 
-    // Poll the grid API until generation finishes.
+    // Poll the Grid API until generation is done.
     const pollGrid = async (jobID: string): Promise<string> => {
       const statusEndpoint = `${gridStatusUrl}/${jobID}`;
       while (true) {
@@ -133,29 +109,26 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    // Retrieve generated text and filter it.
-    const generatedText = await pollGrid(jobID);
-    const finalResultText = filterFinalAnswer(generatedText);
+    const resultText = await pollGrid(jobID);
 
     if (!streamMode) {
-      // Build non-streaming JSON response.
+      // Non-streaming response: return full payload as JSON
       const responsePayload = {
         id: uuidv4(),
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model,
-        system_fingerprint: systemFingerprint,
         choices: [
           {
             index: 0,
-            message: { role: 'assistant', content: finalResultText },
+            message: { role: 'assistant', content: resultText },
             finish_reason: 'stop'
           }
         ],
         usage: {
           prompt_tokens: 0,
-          completion_tokens: finalResultText.split(' ').length,
-          total_tokens: finalResultText.split(' ').length
+          completion_tokens: resultText.split(' ').length,
+          total_tokens: resultText.split(' ').length
         }
       };
       return new Response(JSON.stringify(responsePayload), {
@@ -163,79 +136,38 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' }
       });
     } else {
-      // Build streaming response that outputs token by token.
+      // Streaming mode: Deliver the response as SSE (Server-Sent Events)
       const encoder = new TextEncoder();
+      // Use a common ID and creation timestamp for all chunks.
       const commonId = uuidv4();
       const createdTime = Math.floor(Date.now() / 1000);
-
       const stream = new ReadableStream({
         async start(controller) {
-          // Initial event sets the assistant role.
-          const initialChunk = {
-            id: commonId,
-            object: 'chat.completion.chunk',
-            created: createdTime,
-            model,
-            system_fingerprint: systemFingerprint,
-            choices: [
-              {
-                index: 0,
-                delta: { role: 'assistant', content: '' },
-                logprobs: null,
-                finish_reason: null
-              }
-            ]
-          };
-          controller.enqueue(
-            encoder.encode('data: ' + JSON.stringify(initialChunk) + '\n\n')
-          );
-
-          // Stream the final answer token by token.
-          const tokens = finalResultText.split(' ');
+          // Split the generated text by whitespace.
+          const tokens = resultText.split(' ');
+          // For each token, send an SSE event.
           for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
-            const tokenChunk = {
+            const isLast = i === tokens.length - 1;
+            const chunkData = {
               id: commonId,
               object: 'chat.completion.chunk',
               created: createdTime,
               model,
-              system_fingerprint: systemFingerprint,
               choices: [
                 {
+                  delta: { content: token + (isLast ? '' : ' ') },
                   index: 0,
-                  delta: {
-                    content: token + (i === tokens.length - 1 ? '' : ' ')
-                  },
-                  logprobs: null,
-                  finish_reason: null
+                  finish_reason: isLast ? 'stop' : null
                 }
               ]
             };
-            controller.enqueue(
-              encoder.encode('data: ' + JSON.stringify(tokenChunk) + '\n\n')
-            );
+            const sseChunk = 'data: ' + JSON.stringify(chunkData) + '\n\n';
+            controller.enqueue(encoder.encode(sseChunk));
+            // Optionally simulate a small delay between chunks.
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
-
-          // Final event to indicate completion.
-          const finalChunk = {
-            id: commonId,
-            object: 'chat.completion.chunk',
-            created: createdTime,
-            model,
-            system_fingerprint: systemFingerprint,
-            choices: [
-              {
-                index: 0,
-                delta: {},
-                logprobs: null,
-                finish_reason: 'stop'
-              }
-            ]
-          };
-          controller.enqueue(
-            encoder.encode('data: ' + JSON.stringify(finalChunk) + '\n\n')
-          );
+          // Optionally, send a final SSE [DONE] message.
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         }
