@@ -2,6 +2,7 @@ import axios from 'axios';
 import https from 'https';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 interface GenerationResponse {
   done: boolean;
@@ -18,6 +19,14 @@ const httpsAgent = new https.Agent({
 
 export async function POST(request: NextRequest) {
   try {
+    // Dynamically generate a fingerprint for this request.
+    const systemFingerprint =
+      'fp_' +
+      crypto
+        .createHash('md5')
+        .update(Date.now().toString() + Math.random().toString())
+        .digest('hex');
+
     // Extract API key from Authorization header (if available)
     const authHeader = request.headers.get('Authorization');
     let authApiKey: string | undefined;
@@ -40,7 +49,7 @@ export async function POST(request: NextRequest) {
       messages,
       model = 'aphrodite/deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
       temperature = 0.7,
-      max_tokens = 150,
+      max_tokens = 50,
       sessionId
     } = body;
 
@@ -51,14 +60,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create additional context so the AI knows the output needs to be formatted for the end-user,
-    // using no more than max_tokens tokens.
+    // Updated additional context follows the model's recommendations.
+    // All instructions are contained within the prompt.
+    // The model is instructed to:
+    // • Begin its output with "<think>\n"
+    // • Provide full, step-by-step reasoning enclosed between "<think>\n" and "\n</think>"
+    // • On a new line after the reasoning, provide its final answer enclosed within "\boxed{...}"
     const additionalContext = `Instruction:
-- Generate a response that is clearly formatted for the end user.
-- Use a maximum of ${max_tokens} tokens.
+- You are a highly intelligent assistant.
+- Please perform thorough step-by-step reasoning.
+- Begin your output with "<think>\n", then include all your reasoning, and close the reasoning section with "\n</think>".
+- On a new line following your reasoning, output your final answer enclosed within "\boxed{...}".
+- Do not include any extraneous text or commentary.
+- Use a maximum of ${max_tokens} tokens for your final answer.
 `;
-    // Combine the additional context with the conversation messages.
-    // The messages are transformed into a prompt format, e.g., "role: content" per message.
+
+    // Assemble the full prompt: additional context plus the conversation.
+    // All instructions are now part of the user prompt.
     const instruction =
       additionalContext +
       '\n' +
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const resultText = await pollGrid(jobID);
+    const resultText = (await pollGrid(jobID)).trim();
 
     if (!streamMode) {
       // Non-streaming response: return full payload as JSON
@@ -118,6 +136,7 @@ export async function POST(request: NextRequest) {
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model,
+        system_fingerprint: systemFingerprint,
         choices: [
           {
             index: 0,
@@ -143,31 +162,72 @@ export async function POST(request: NextRequest) {
       const createdTime = Math.floor(Date.now() / 1000);
       const stream = new ReadableStream({
         async start(controller) {
-          // Split the generated text by whitespace.
+          // First event: send an initial event to set the assistant's role.
+          const initialChunk = {
+            id: commonId,
+            object: 'chat.completion.chunk',
+            created: createdTime,
+            model,
+            system_fingerprint: systemFingerprint,
+            choices: [
+              {
+                index: 0,
+                delta: { role: 'assistant', content: '' },
+                logprobs: null,
+                finish_reason: null
+              }
+            ]
+          };
+          controller.enqueue(
+            encoder.encode('data: ' + JSON.stringify(initialChunk) + '\n\n')
+          );
+
+          // Split the entire result text into tokens and stream them.
           const tokens = resultText.split(' ');
-          // For each token, send an SSE event.
           for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
-            const isLast = i === tokens.length - 1;
-            const chunkData = {
+            const tokenChunk = {
               id: commonId,
               object: 'chat.completion.chunk',
               created: createdTime,
               model,
+              system_fingerprint: systemFingerprint,
               choices: [
                 {
-                  delta: { content: token + (isLast ? '' : ' ') },
                   index: 0,
-                  finish_reason: isLast ? 'stop' : null
+                  delta: {
+                    content: token + (i === tokens.length - 1 ? '' : ' ')
+                  },
+                  logprobs: null,
+                  finish_reason: null
                 }
               ]
             };
-            const sseChunk = 'data: ' + JSON.stringify(chunkData) + '\n\n';
-            controller.enqueue(encoder.encode(sseChunk));
-            // Optionally simulate a small delay between chunks.
+            controller.enqueue(
+              encoder.encode('data: ' + JSON.stringify(tokenChunk) + '\n\n')
+            );
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
-          // Optionally, send a final SSE [DONE] message.
+
+          // Final event: signal the end of the stream.
+          const finalChunk = {
+            id: commonId,
+            object: 'chat.completion.chunk',
+            created: createdTime,
+            model,
+            system_fingerprint: systemFingerprint,
+            choices: [
+              {
+                index: 0,
+                delta: {},
+                logprobs: null,
+                finish_reason: 'stop'
+              }
+            ]
+          };
+          controller.enqueue(
+            encoder.encode('data: ' + JSON.stringify(finalChunk) + '\n\n')
+          );
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         }
