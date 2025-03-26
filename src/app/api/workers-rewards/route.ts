@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 
-// Only consider workers valid if their name matches the AIPG regex.
-const aipgAddressRegex = /^[A][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
+// Pattern to match valid AIPG addresses
+const aipgAddressRegex = /[A][a-km-zA-HJ-NP-Z1-9]{25,34}/;
 
-// Helper function to sanitize worker names by stripping leading/trailing quotes.
-function sanitizeWorkerName(name: string): string {
-  return name.replace(/^"|"$/g, '');
+// Helper function to extract valid AIPG addresses from worker names
+function extractAIPGAddress(name: string): string | null {
+  // First, strip any quotes
+  const unquotedName = name.replace(/^"|"$/g, '');
+
+  // Try to find a valid AIPG address within the name
+  const match = unquotedName.match(aipgAddressRegex);
+
+  // Return the matched address or null if none found
+  return match ? match[0] : null;
 }
 
 export async function GET(request: Request) {
@@ -26,19 +33,20 @@ export async function GET(request: Request) {
 
     const data = await externalRes.json();
 
-    // Filter out only valid workers based on the given regex after sanitizing the name.
+    // Filter out only workers that contain a valid AIPG address
     const validWorkers = data.filter((worker: any) => {
-      const sanitizedName = sanitizeWorkerName(worker.name);
-      return aipgAddressRegex.test(sanitizedName);
+      const extractedAddress = extractAIPGAddress(worker.name);
+      return extractedAddress !== null;
     });
 
     // Map the valid workers to only include rewards-related details,
-    // storing the sanitized worker name.
+    // using the extracted AIPG address as the name
     const rewardsDetails = validWorkers.map((worker: any) => {
-      const sanitizedName = sanitizeWorkerName(worker.name);
+      const extractedAddress = extractAIPGAddress(worker.name);
       return {
         id: worker.id,
-        name: sanitizedName,
+        name: extractedAddress,
+        original_name: worker.name, // Optionally keep the original name for reference
         requests_fulfilled: worker.requests_fulfilled,
         kudos_rewards: worker.kudos_rewards,
         kudos_generated: worker.kudos_details?.generated ?? null,
