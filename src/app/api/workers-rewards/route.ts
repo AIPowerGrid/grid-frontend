@@ -49,8 +49,8 @@ export async function GET(request: Request) {
         original_name: worker.name, // Optionally keep the original name for reference
         requests_fulfilled: worker.requests_fulfilled,
         kudos_rewards: worker.kudos_rewards,
-        kudos_generated: worker.kudos_details?.generated ?? null,
-        kudos_uptime: worker.kudos_details?.uptime ?? null
+        kudos_generated: worker.kudos_details?.generated ?? 0,
+        kudos_uptime: worker.kudos_details?.uptime ?? 0
       };
     });
 
