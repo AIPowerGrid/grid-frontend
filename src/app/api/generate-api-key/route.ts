@@ -1,4 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import * as db from '@/lib/db';
+import { headers } from 'next/headers';
+
+// Simple in-memory rate limiting store
+// In a production environment, use Redis or a similar solution
+interface RateLimitEntry {
+  count: number;
+  timestamp: number;
+}
+const rateLimitStore: Record<string, RateLimitEntry> = {};
+
+// Rate limit configuration
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
+const RATE_LIMIT_MAX_REQUESTS = 5; // 5 requests per minute
+const RATE_LIMIT_REGENERATE = 1; // 1 regenerate per minute
+
+// Helper function to check and update rate limits
+function checkRateLimit(id: string, isRegenerate: boolean = false): boolean {
+  const now = Date.now();
+  const limit = isRegenerate ? RATE_LIMIT_REGENERATE : RATE_LIMIT_MAX_REQUESTS;
+
+  // Clean up expired entries
+  Object.keys(rateLimitStore).forEach((key) => {
+    if (now - rateLimitStore[key].timestamp > RATE_LIMIT_WINDOW) {
+      delete rateLimitStore[key];
+    }
+  });
+
+  const key = isRegenerate ? `${id}:regenerate` : id;
+
+  if (!rateLimitStore[key]) {
+    rateLimitStore[key] = { count: 1, timestamp: now };
+    return true;
+  }
+
+  if (now - rateLimitStore[key].timestamp > RATE_LIMIT_WINDOW) {
+    // Reset if window has passed
+    rateLimitStore[key] = { count: 1, timestamp: now };
+    return true;
+  }
+
+  // Check if limit exceeded
+  if (rateLimitStore[key].count >= limit) {
+    return false;
+  }
+
+  // Increment counter
+  rateLimitStore[key].count++;
+  return true;
+}
 
 // Helper function to generate a random string containing only letters (A-Z, a-z)
 function generateRandomLetters(length: number): string {
@@ -44,20 +95,208 @@ async function fetchApiKey(): Promise<string | null> {
   }
 }
 
+// Utility function to extract a stable OAuth ID
+function getStableId(session: any): string | null {
+  if (!session?.user?.id) return null;
+
+  const userId = session.user.id;
+
+  // Already a stable ID from an OAuth provider (e.g., "google_12345...")
+  if (userId.includes('_')) {
+    return userId;
+  }
+
+  // Handle legacy format or other ID formats by using the whole ID
+  return userId;
+}
+
+// Make sure user has the TRUSTED role and return the status
+async function ensureUserIsTrusted(userId: number): Promise<boolean> {
+  try {
+    // Always set the TRUSTED role to TRUE for all users
+    await db.addUserRole(userId, 'TRUSTED', 'TRUE');
+
+    // Verify the role was set correctly
+    const roles = await db.getUserRoles(userId);
+
+    // Special handling for boolean values from PostgreSQL
+    const isTrusted = roles.some((role) => {
+      if (role.user_role !== 'TRUSTED') return false;
+
+      // Check all possible true values
+      return (
+        role.value === true ||
+        role.value === 'true' ||
+        role.value === 'TRUE' ||
+        role.value === 't' ||
+        role.value === 'T'
+      );
+    });
+
+    return isTrusted;
+  } catch (error) {
+    console.error(`Error ensuring trusted status for user ${userId}:`, error);
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = await fetchApiKey();
-    if (!apiKey) {
+    // Get the user's session
+    const session = await auth();
+    const oauthId = getStableId(session);
+
+    if (!oauthId) {
       return NextResponse.json(
-        { error: 'Failed to fetch API key' },
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    try {
+      // First, always check if user already exists in the database
+      let user = await db.getUserByOAuthId(oauthId);
+      let apiKey;
+
+      // Check if we should generate a new key
+      const requestData = await request.json().catch(() => ({}));
+      const forceRegenerate = requestData?.regenerate === true;
+
+      // Check rate limits
+      if (!checkRateLimit(oauthId, forceRegenerate)) {
+        return NextResponse.json(
+          {
+            error: 'Rate limit exceeded',
+            message: forceRegenerate
+              ? 'You can only regenerate your API key once per minute'
+              : 'Too many requests, please try again later'
+          },
+          { status: 429 }
+        );
+      }
+
+      if (user && user.api_key && !forceRegenerate) {
+        // User exists and has an API key - return the existing key
+        apiKey = user.api_key;
+
+        // Ensure user is trusted and get the status
+        const isTrusted = await ensureUserIsTrusted(user.id);
+
+        return NextResponse.json({
+          apiKey,
+          trusted: isTrusted,
+          userId: user.id,
+          username: user.username
+        });
+      }
+
+      // Generate a new API key if we're here
+      apiKey = await fetchApiKey();
+
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: 'Failed to fetch API key from service' },
+          { status: 500 }
+        );
+      }
+
+      // Re-check if user exists (in case of race conditions)
+      if (!user) {
+        user = await db.getUserByOAuthId(oauthId);
+      }
+
+      if (user) {
+        // Update existing user's API key
+        user = await db.updateUserApiKey(user.id, apiKey);
+      } else {
+        // Create new user
+        const username = generateRandomLetters(8); // Generate a random username
+        try {
+          user = await db.createUser(username, oauthId, apiKey);
+        } catch (createError: any) {
+          // If creation fails due to duplicate key, try to get the user again
+          if (createError.code === '23505') {
+            user = await db.getUserByOAuthId(oauthId);
+
+            // If we still don't have a user, something is seriously wrong
+            if (!user) {
+              throw createError;
+            }
+
+            // Update the API key for the now-found user
+            user = await db.updateUserApiKey(user.id, apiKey);
+          } else {
+            throw createError;
+          }
+        }
+      }
+
+      // Ensure user is trusted and get the status
+      const isTrusted = await ensureUserIsTrusted(user.id);
+
+      return NextResponse.json({
+        apiKey,
+        trusted: isTrusted,
+        userId: user.id,
+        username: user.username
+      });
+    } catch (dbError: any) {
+      console.error('Database error in generate-api-key:', dbError);
+
+      // Check if it's a database constraint error
+      if (dbError.code === '23502') {
+        // Not-null constraint violation
+        return NextResponse.json(
+          {
+            error: 'Database constraint error',
+            message: 'Missing required field in database operation',
+            details: dbError.detail || dbError.message
+          },
+          { status: 400 }
+        );
+      }
+
+      if (dbError.code === '23505') {
+        // Unique constraint violation
+        // For OAuth ID uniqueness errors, try to fetch the user and return their API key
+        if (
+          dbError.constraint === 'ix_users_oauth_id' ||
+          dbError.constraint === 'users_client_id_key'
+        ) {
+          const user = await db.getUserByOAuthId(oauthId);
+
+          if (user && user.api_key) {
+            // Return the existing user's API key
+            const isTrusted = await ensureUserIsTrusted(user.id);
+
+            return NextResponse.json({
+              apiKey: user.api_key,
+              trusted: isTrusted,
+              userId: user.id,
+              username: user.username
+            });
+          }
+        }
+
+        return NextResponse.json(
+          {
+            error: 'Duplicate entry error',
+            message: 'A record with this information already exists',
+            details: dbError.detail || dbError.message
+          },
+          { status: 409 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: 'Database error', message: dbError.message },
         { status: 500 }
       );
     }
-    return NextResponse.json({ apiKey });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in generate-api-key:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: error.message },
       { status: 500 }
     );
   }
