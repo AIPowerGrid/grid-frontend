@@ -241,62 +241,26 @@ export async function POST(request: NextRequest) {
         username: user.username
       });
     } catch (dbError: any) {
+      // Log the full database error to the server logs, but don't expose details to the client
       console.error('Database error in generate-api-key:', dbError);
 
-      // Check if it's a database constraint error
-      if (dbError.code === '23502') {
-        // Not-null constraint violation
-        return NextResponse.json(
-          {
-            error: 'Database constraint error',
-            message: 'Missing required field in database operation',
-            details: dbError.detail || dbError.message
-          },
-          { status: 400 }
-        );
-      }
-
-      if (dbError.code === '23505') {
-        // Unique constraint violation
-        // For OAuth ID uniqueness errors, try to fetch the user and return their API key
-        if (
-          dbError.constraint === 'ix_users_oauth_id' ||
-          dbError.constraint === 'users_client_id_key'
-        ) {
-          const user = await db.getUserByOAuthId(oauthId);
-
-          if (user && user.api_key) {
-            // Return the existing user's API key
-            const isTrusted = await ensureUserIsTrusted(user.id);
-
-            return NextResponse.json({
-              apiKey: user.api_key,
-              trusted: isTrusted,
-              userId: user.id,
-              username: user.username
-            });
-          }
-        }
-
-        return NextResponse.json(
-          {
-            error: 'Duplicate entry error',
-            message: 'A record with this information already exists',
-            details: dbError.detail || dbError.message
-          },
-          { status: 409 }
-        );
-      }
-
+      // Generic response for database errors, without exposing details
       return NextResponse.json(
-        { error: 'Database error', message: dbError.message },
+        {
+          error: 'Database error',
+          message:
+            'There was a problem connecting to the database. Please try again later.'
+        },
         { status: 500 }
       );
     }
   } catch (error: any) {
     console.error('Error in generate-api-key:', error);
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      {
+        error: 'Internal server error',
+        message: 'An unexpected error occurred. Please try again later.'
+      },
       { status: 500 }
     );
   }
