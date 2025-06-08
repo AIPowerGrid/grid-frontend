@@ -7,7 +7,18 @@ const authConfig = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_ID ?? '',
-      clientSecret: process.env.GOOGLE_SECRET ?? ''
+      clientSecret: process.env.GOOGLE_SECRET ?? '',
+      // Ensure we get consistent profile data
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          // Store Google's unique ID directly in the token
+          provider_id: `google_${profile.sub}`
+        };
+      }
     }),
     CredentialProvider({
       credentials: {
@@ -29,7 +40,18 @@ const authConfig = {
     }),
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? '',
-      clientSecret: process.env.GITHUB_SECRET ?? ''
+      clientSecret: process.env.GITHUB_SECRET ?? '',
+      // Ensure we get consistent profile data
+      profile(profile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.name || profile.login,
+          email: profile.email,
+          image: profile.avatar_url,
+          // Store GitHub's unique ID directly in the token
+          provider_id: `github_${profile.id}`
+        };
+      }
     }),
     CredentialProvider({
       credentials: {
@@ -59,10 +81,28 @@ const authConfig = {
     })
   ],
   callbacks: {
+    async jwt({ token, user, account, profile }) {
+      // Persist the provider's user ID to the token right after sign in
+      if (account && profile) {
+        token.provider = account.provider;
+
+        if (account.provider === 'google') {
+          // Use Google's sub field as a stable identifier
+          token.provider_id = `google_${profile.sub}`;
+        } else if (account.provider === 'github') {
+          // Use GitHub's ID as a stable identifier
+          token.provider_id = `github_${profile.id}`;
+        }
+      }
+      return token;
+    },
     async session({ session, token, user }) {
-      // Use non-null assertion because you expect token.sub to be present.
-      if (session.user) {
-        session.user.id = token.sub!;
+      // If a provider_id exists, use it as the stable ID
+      if (token.provider_id) {
+        session.user.id = token.provider_id as string;
+      } else if (token.sub) {
+        // Fallback to token.sub
+        session.user.id = token.sub;
       }
       return session;
     }
