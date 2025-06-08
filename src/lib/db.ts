@@ -4,16 +4,13 @@ import crypto from 'crypto';
 // Create a PostgreSQL connection pool with more flexible SSL settings
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  // Try to connect with SSL first, but allow fallback to non-SSL if needed
+  // Handle various SSL scenarios including self-signed certificates
   ssl:
     process.env.POSTGRES_SSL === 'false'
       ? false
       : {
-          rejectUnauthorized:
-            process.env.POSTGRES_REJECT_UNAUTHORIZED === 'false' ? false : true
-          // If we get pg_hba.conf errors, we need to be able to fall back
-          // to non-SSL connections in some environments
-          // The try-catch in the query function will handle connection failures
+          // Set to false to accept self-signed certificates
+          rejectUnauthorized: false
         }
 };
 
