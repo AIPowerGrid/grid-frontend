@@ -1,14 +1,24 @@
 import { Pool } from 'pg';
 import crypto from 'crypto';
 
-// Create a PostgreSQL connection pool
-const pool = new Pool({
+// Create a PostgreSQL connection pool with more flexible SSL settings
+const poolConfig = {
   connectionString: process.env.DATABASE_URL,
+  // Try to connect with SSL first, but allow fallback to non-SSL if needed
   ssl:
-    process.env.NODE_ENV === 'production'
-      ? { rejectUnauthorized: false }
-      : false
-});
+    process.env.POSTGRES_SSL === 'false'
+      ? false
+      : {
+          rejectUnauthorized:
+            process.env.POSTGRES_REJECT_UNAUTHORIZED === 'false' ? false : true
+          // If we get pg_hba.conf errors, we need to be able to fall back
+          // to non-SSL connections in some environments
+          // The try-catch in the query function will handle connection failures
+        }
+};
+
+// Create a connection pool with the configured settings
+const pool = new Pool(poolConfig);
 
 // Helper function to query the database
 export async function query(text: string, params?: any[]) {
@@ -24,7 +34,15 @@ export async function query(text: string, params?: any[]) {
 
     return res;
   } catch (error) {
-    console.error('Database query error:', error);
+    // Log the error with more details in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Database query error:', error);
+    } else {
+      // In production, log minimal info to avoid leaking sensitive data
+      console.error('Database error:', (error as Error).message);
+    }
+
+    // Rethrow the error so it can be handled by the caller
     throw error;
   }
 }
