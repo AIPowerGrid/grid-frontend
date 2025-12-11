@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as db from '@/lib/db';
 import { headers } from 'next/headers';
+import crypto from 'crypto';
 
 // Simple in-memory rate limiting store
 // In a production environment, use Redis or a similar solution
@@ -62,51 +63,35 @@ function generateRandomLetters(length: number): string {
   return result;
 }
 
-// Local function to generate the API key. Note: it's not exported.
-async function fetchApiKey(): Promise<string | null> {
-  try {
-    // Generate a random username of 14 letters.
-    const username = generateRandomLetters(14);
-    const response = await fetch('https://api.aipowergrid.io/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        Origin: 'https://api.aipowergrid.io',
-        Referer: 'https://api.aipowergrid.io/register'
-      },
-      body: `username=${username}`
-    });
+// Generate a secure API key locally (equivalent to Python's secrets.token_urlsafe(16))
+function generateApiKey(): string {
+  // 16 bytes = 128 bits of entropy, base64url encoded
+  return crypto.randomBytes(16).toString('base64url');
+}
 
-    const responseText = await response.text();
-
-    // Use a regex to extract the API key (adjust if the HTML structure changes)
-    const apiKeyRegex =
-      /<p\s+style="background-color:\s*darkorange\s*;">\s*(.*?)\s*<\/p>/i;
-    const match = responseText.match(apiKeyRegex);
-    const apiKey = match?.[1];
-    return apiKey || null;
-  } catch (error) {
-    console.error('Error fetching API key:', error);
-    return null;
-  }
+// Hash the API key before storing it in the database (security best practice)
+function hashApiKey(key: string): string {
+  return crypto.createHash('sha256').update(key).digest('hex');
 }
 
 // Utility function to extract a stable OAuth ID
 function getStableId(session: any): string | null {
-  if (!session?.user?.id) return null;
+  if (!session?.user?.id) {
+    console.log('[getStableId] No session or user.id found');
+    return null;
+  }
 
   const userId = session.user.id;
+  console.log(`[getStableId] Input userId: ${userId}`);
 
-  // Already a stable ID from an OAuth provider (e.g., "google_12345...")
+  // Already a stable ID from an OAuth provider (e.g., "google_12345..." or "web3_0x...")
   if (userId.includes('_')) {
+    console.log(`[getStableId] Found stable ID with underscore: ${userId}`);
     return userId;
   }
 
   // Handle legacy format or other ID formats by using the whole ID
+  console.log(`[getStableId] Using whole userId (no underscore): ${userId}`);
   return userId;
 }
 
@@ -114,6 +99,7 @@ function getStableId(session: any): string | null {
 async function ensureUserIsTrusted(userId: number): Promise<boolean> {
   try {
     // Always set the TRUSTED role to TRUE for all users
+    // addUserRole now uses UPSERT to handle race conditions gracefully
     await db.addUserRole(userId, 'TRUSTED', 'TRUE');
 
     // Verify the role was set correctly
@@ -134,8 +120,12 @@ async function ensureUserIsTrusted(userId: number): Promise<boolean> {
     });
 
     return isTrusted;
-  } catch (error) {
-    console.error(`Error ensuring trusted status for user ${userId}:`, error);
+  } catch (error: any) {
+    // Only log unexpected errors (not duplicate key errors which are expected in race conditions)
+    if (error.code !== '23505') {
+      console.error(`Error ensuring trusted status for user ${userId}:`, error);
+    }
+    // Return false if we can't verify trusted status, but don't fail the whole request
     return false;
   }
 }
@@ -144,9 +134,18 @@ export async function POST(request: NextRequest) {
   try {
     // Get the user's session
     const session = await auth();
+
+    // TEMPORARY LOGGING - Remove after debugging
+    console.log('=== API KEY GENERATION DEBUG ===');
+    console.log('Session:', JSON.stringify(session, null, 2));
+    console.log('Session user:', session?.user);
+    console.log('Session user id:', session?.user?.id);
+
     const oauthId = getStableId(session);
+    console.log('Extracted oauthId:', oauthId);
 
     if (!oauthId) {
+      console.log('ERROR: No oauthId found');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -155,7 +154,14 @@ export async function POST(request: NextRequest) {
 
     try {
       // First, always check if user already exists in the database
+      console.log('Looking up user with oauthId:', oauthId);
       let user = await db.getUserByOAuthId(oauthId);
+      console.log(
+        'User lookup result:',
+        user
+          ? `Found user ID: ${user.id}, username: ${user.username}`
+          : 'User not found'
+      );
       let apiKey;
 
       // Check if we should generate a new key
@@ -175,67 +181,127 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Generate a new API key locally (no external API scraping needed!)
+      let plaintextApiKey: string;
+      let hashedApiKey: string;
+
       if (user && user.api_key && !forceRegenerate) {
-        // User exists and has an API key - return the existing key
-        apiKey = user.api_key;
+        // User exists and has an API key
+        // Check if it's a hashed key (64 char hex) or plaintext (legacy)
+        const existingKeyIsHashed = /^[a-f0-9]{64}$/i.test(user.api_key);
 
-        // Ensure user is trusted and get the status
-        const isTrusted = await ensureUserIsTrusted(user.id);
-
-        return NextResponse.json({
-          apiKey,
-          trusted: isTrusted,
-          userId: user.id,
-          username: user.username
-        });
+        if (existingKeyIsHashed) {
+          // It's already hashed, we can't show the original
+          // Return success but indicate the key is stored securely and cannot be retrieved
+          const isTrusted = await ensureUserIsTrusted(user.id);
+          return NextResponse.json({
+            // Don't return an error - return success with a message explaining the situation
+            message:
+              'Your API key is stored securely and cannot be retrieved. If you need a new key, use the "Create New Key" button below.',
+            keyStored: true, // Indicates key exists but can't be shown
+            requiresRegeneration: false, // User can choose to regenerate
+            trusted: isTrusted,
+            userId: user.id,
+            username: user.username
+          });
+        } else {
+          // Legacy plaintext key - return it (for backwards compatibility)
+          // Note: New keys will be hashed going forward
+          const isTrusted = await ensureUserIsTrusted(user.id);
+          return NextResponse.json({
+            apiKey: user.api_key,
+            trusted: isTrusted,
+            userId: user.id,
+            username: user.username
+          });
+        }
       }
 
-      // Generate a new API key if we're here
-      apiKey = await fetchApiKey();
+      // If forceRegenerate is true, we skip the above check and generate a new key below
 
-      if (!apiKey) {
-        return NextResponse.json(
-          { error: 'Failed to fetch API key from service' },
-          { status: 500 }
-        );
-      }
+      // Generate new API key
+      console.log('Generating new API key locally...');
+      plaintextApiKey = generateApiKey();
+      hashedApiKey = hashApiKey(plaintextApiKey);
+      console.log(
+        'API key generated successfully (length:',
+        plaintextApiKey.length,
+        ')'
+      );
+
+      // Store the hashed version in the variable for DB operations
+      apiKey = hashedApiKey;
 
       // Re-check if user exists (in case of race conditions)
       if (!user) {
+        console.log('Re-checking for user after API key fetch...');
         user = await db.getUserByOAuthId(oauthId);
+        console.log(
+          'Re-check result:',
+          user ? `Found user ID: ${user.id}` : 'Still not found'
+        );
       }
 
       if (user) {
         // Update existing user's API key
+        console.log(`Updating existing user ${user.id} with new API key`);
         user = await db.updateUserApiKey(user.id, apiKey);
+        console.log('User updated successfully');
       } else {
-        // Create new user
+        // Create new user - THIS IS WHERE WEB3 USERS GET CREATED (same as Google/GitHub)
         const username = generateRandomLetters(8); // Generate a random username
+        console.log(
+          `[USER CREATION] Creating new user with username: ${username}, oauthId: ${oauthId}`
+        );
+        console.log(
+          `[USER CREATION] This is the same flow for all auth providers (Web3, Google, GitHub)`
+        );
         try {
           user = await db.createUser(username, oauthId, apiKey);
+          console.log(
+            `[USER CREATION] ✓ User created successfully! ID: ${user.id}, username: ${user.username}`
+          );
         } catch (createError: any) {
-          // If creation fails due to duplicate key, try to get the user again
+          // If creation fails due to duplicate key (race condition - another request created the user)
           if (createError.code === '23505') {
+            console.log(
+              'User creation race condition detected, fetching existing user...'
+            );
             user = await db.getUserByOAuthId(oauthId);
 
             // If we still don't have a user, something is seriously wrong
             if (!user) {
+              console.error(
+                'Duplicate key error but user not found - this should not happen'
+              );
               throw createError;
             }
 
             // Update the API key for the now-found user
+            console.log(
+              `Race condition resolved: updating existing user ${user.id} with new API key`
+            );
             user = await db.updateUserApiKey(user.id, apiKey);
           } else {
+            console.error(
+              'Error creating user:',
+              createError.code,
+              createError.message
+            );
             throw createError;
           }
         }
       }
 
       // Ensure user is trusted and get the status
+      console.log(`Ensuring user ${user.id} is trusted...`);
       const isTrusted = await ensureUserIsTrusted(user.id);
+      console.log(`User trusted status: ${isTrusted}`);
 
+      console.log('=== SUCCESS - Returning API key ===');
+      // Return the plaintext key (only time it's exposed), store hashed in DB
       return NextResponse.json({
-        apiKey,
+        apiKey: plaintextApiKey, // Return plaintext, but we stored hashed
         trusted: isTrusted,
         userId: user.id,
         username: user.username

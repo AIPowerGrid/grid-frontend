@@ -113,27 +113,44 @@ export async function addUserRole(
     boolValue = value === 'true' || value === 't' || value === '1';
   }
 
-  // Check if the role already exists for this user
-  const existingRole = await query(
-    'SELECT * FROM user_roles WHERE user_id = $1 AND user_role = $2',
-    [userId, role]
-  );
-
-  // If role already exists, update it to ensure it has the right value
-  if (existingRole.rows.length > 0) {
+  // Use UPSERT (ON CONFLICT) to atomically insert or update the role
+  // This prevents race conditions when multiple requests try to add the same role simultaneously
+  // Assumes there's a unique constraint on (user_id, user_role) or a composite primary key
+  try {
     const result = await query(
-      'UPDATE user_roles SET value = $3 WHERE user_id = $1 AND user_role = $2 RETURNING *',
+      `INSERT INTO user_roles (user_id, user_role, value) 
+       VALUES ($1, $2, $3) 
+       ON CONFLICT (user_id, user_role) 
+       DO UPDATE SET value = $3 
+       RETURNING *`,
       [userId, role, boolValue]
     );
     return result.rows[0];
-  }
+  } catch (error: any) {
+    // If ON CONFLICT doesn't work (no unique constraint), fall back to check-then-insert
+    if (error.code === '42704' || error.message?.includes('conflict')) {
+      // Try the old method as fallback
+      const existingRole = await query(
+        'SELECT * FROM user_roles WHERE user_id = $1 AND user_role = $2',
+        [userId, role]
+      );
 
-  // Otherwise create a new role
-  const result = await query(
-    'INSERT INTO user_roles (user_id, user_role, value) VALUES ($1, $2, $3) RETURNING *',
-    [userId, role, boolValue]
-  );
-  return result.rows[0];
+      if (existingRole.rows.length > 0) {
+        const result = await query(
+          'UPDATE user_roles SET value = $3 WHERE user_id = $1 AND user_role = $2 RETURNING *',
+          [userId, role, boolValue]
+        );
+        return result.rows[0];
+      }
+
+      const result = await query(
+        'INSERT INTO user_roles (user_id, user_role, value) VALUES ($1, $2, $3) RETURNING *',
+        [userId, role, boolValue]
+      );
+      return result.rows[0];
+    }
+    throw error;
+  }
 }
 
 export async function getUserRoles(userId: number) {

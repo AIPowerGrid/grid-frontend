@@ -10,12 +10,14 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 interface ApiResponse {
-  apiKey: string;
+  apiKey?: string;
   trusted: boolean;
   userId?: number;
   username?: string;
   error?: string;
   message?: string;
+  keyStored?: boolean; // True if key exists but is hashed and can't be shown
+  requiresRegeneration?: boolean;
   debug?: {
     clientId: string;
     oauthId: string;
@@ -49,15 +51,23 @@ export default function ApiKeyGenerator() {
     setError(null);
 
     try {
+      console.log('[CLIENT] Fetching API key, regenerate:', regenerate);
       const response = await fetch('/api/generate-api-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ regenerate })
       });
 
+      console.log(
+        '[CLIENT] Response status:',
+        response.status,
+        response.statusText
+      );
       const data: ApiResponse = await response.json();
+      console.log('[CLIENT] Response data:', data);
 
       if (data.apiKey) {
+        console.log('[CLIENT] API key received successfully');
         setApiKey(data.apiKey);
         setTrusted(!!data.trusted);
         setGenerated(true);
@@ -71,17 +81,32 @@ export default function ApiKeyGenerator() {
             'Your API key has been regenerated. The old key is no longer valid.'
           );
         }
+      } else if (data.keyStored) {
+        // User has a key but it's hashed and can't be shown
+        console.log('[CLIENT] Key exists but is stored securely (hashed)');
+        setGenerated(true); // Mark as generated so UI shows regenerate option
+        setTrusted(!!data.trusted);
+        if (data.username) setUsername(data.username);
+        if (data.userId) setUserId(data.userId);
+
+        // Show informational message (not an error)
+        setError(
+          data.message ||
+            'Your API key is stored securely and cannot be retrieved. Use "Create New Key" if you need a new one.'
+        );
       } else {
         const errorMessage =
           data.message || data.error || 'Unknown error occurred';
+        console.error('[CLIENT] Error generating API key:', errorMessage);
+        console.error('[CLIENT] Full error data:', data);
         setError(errorMessage);
-        console.error('Error generating API key:', errorMessage);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to connect to API';
+      console.error('[CLIENT] Exception caught:', error);
+      console.error('[CLIENT] Error message:', errorMessage);
       setError(errorMessage);
-      console.error('Error generating API key:', error);
     }
     setLoading(false);
     setRegenerating(false);
@@ -153,7 +178,16 @@ export default function ApiKeyGenerator() {
           )}
           <div>
             <label className='block text-sm font-medium'>Your API Key:</label>
-            <Input readOnly value={apiKey} className='mt-1 w-full' />
+            {apiKey ? (
+              <Input readOnly value={apiKey} className='mt-1 w-full' />
+            ) : (
+              <Input
+                readOnly
+                value='••••••••••••••••••••••••'
+                className='mt-1 w-full bg-muted'
+                disabled
+              />
+            )}
           </div>
           <div className='flex items-center space-x-2'>
             <Button onClick={handleCopy} variant='outline'>
@@ -206,7 +240,13 @@ export default function ApiKeyGenerator() {
       )}
 
       {error && (
-        <div className='mt-2 rounded bg-red-50 p-2 text-sm text-red-600'>
+        <div
+          className={`mt-2 rounded p-2 text-sm ${
+            error.includes('regenerated') || error.includes('stored securely')
+              ? 'bg-blue-50 text-blue-600'
+              : 'bg-red-50 text-red-600'
+          }`}
+        >
           <p>{error}</p>
         </div>
       )}
