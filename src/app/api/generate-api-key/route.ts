@@ -63,10 +63,26 @@ function generateRandomLetters(length: number): string {
   return result;
 }
 
-// Generate a secure API key locally (equivalent to Python's secrets.token_urlsafe(16))
+// Generate a secure API key that exactly matches Python's secrets.token_urlsafe(16)
+// This is critical for Horde API compatibility - the format must be identical
+function tokenUrlSafe(bytes: number = 16): string {
+  // Replicate Python secrets.token_urlsafe() exactly:
+  // 1. Generate random bytes
+  // 2. Base64 encode using standard base64
+  // 3. Replace + with - (URL-safe)
+  // 4. Replace / with _ (URL-safe)
+  // 5. Strip padding (=)
+  return crypto
+    .randomBytes(bytes)
+    .toString('base64') // Standard base64 first
+    .replace(/\+/g, '-') // URL-safe: + -> -
+    .replace(/\//g, '_') // URL-safe: / -> _
+    .replace(/=+$/, ''); // Strip padding
+}
+
+// Generate API key using the Horde-compatible format
 function generateApiKey(): string {
-  // 16 bytes = 128 bits of entropy, base64url encoded
-  return crypto.randomBytes(16).toString('base64url');
+  return tokenUrlSafe(16);
 }
 
 // Hash the API key before storing it in the database (security best practice)
