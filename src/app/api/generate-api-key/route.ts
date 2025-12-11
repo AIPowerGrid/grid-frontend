@@ -85,9 +85,22 @@ function generateApiKey(): string {
   return tokenUrlSafe(16);
 }
 
-// Hash the API key before storing it in the database (security best practice)
+// Hash the API key using Horde's exact salted hash format
+// Horde uses: sha256(salt + plaintext_key) where salt is PREPENDED
+// This must match exactly for API key validation to work
 function hashApiKey(key: string): string {
-  return crypto.createHash('sha256').update(key).digest('hex');
+  // Horde's salt from environment variable - must match Horde's salt exactly
+  const salt = process.env.GRID_SALT;
+  if (!salt) {
+    throw new Error(
+      'GRID_SALT environment variable is required for API key hashing'
+    );
+  }
+  // Salt is PREPENDED, not appended: sha256(salt + key)
+  return crypto
+    .createHash('sha256')
+    .update(salt + key) // salt PREPENDED
+    .digest('hex');
 }
 
 // Utility function to extract a stable OAuth ID
