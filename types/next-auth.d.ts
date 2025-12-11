@@ -10,4 +10,8 @@ declare module 'next-auth' {
     email: string;
     password: string;
   }
+
+  interface User {
+    provider_id?: string;
+  }
 }

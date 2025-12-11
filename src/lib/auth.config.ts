@@ -2,6 +2,7 @@ import { NextAuthConfig } from 'next-auth';
 import CredentialProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GithubProvider from 'next-auth/providers/github';
+import { verifyMessage } from 'ethers';
 
 const authConfig = {
   providers: [
@@ -20,24 +21,6 @@ const authConfig = {
         };
       }
     }),
-    CredentialProvider({
-      credentials: {
-        email: {
-          type: 'email'
-        },
-        password: {
-          type: 'password'
-        }
-      },
-      async authorize(credentials, req) {
-        const user = {
-          id: '1',
-          name: 'John',
-          email: credentials?.email as string
-        };
-        return user || null;
-      }
-    }),
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? '',
       clientSecret: process.env.GITHUB_SECRET ?? '',
@@ -53,29 +36,59 @@ const authConfig = {
         };
       }
     }),
+    // Web3 Wallet Authentication
     CredentialProvider({
+      id: 'web3',
+      name: 'Web3 Wallet',
       credentials: {
-        email: {
-          type: 'email'
+        address: {
+          label: 'Wallet Address',
+          type: 'text'
         },
-        password: {
-          type: 'password'
+        signature: {
+          label: 'Signature',
+          type: 'text'
+        },
+        nonce: {
+          label: 'Nonce',
+          type: 'text'
         }
       },
-      async authorize(credentials, req) {
-        const user = {
-          id: '1',
-          name: 'John',
-          email: credentials?.email as string
-        };
-        if (user) {
-          // Any object returned will be saved in `user` property of the JWT
-          return user;
-        } else {
-          // If you return null then an error will be displayed advising the user to check their details.
+      async authorize(credentials) {
+        if (
+          !credentials?.address ||
+          !credentials?.signature ||
+          !credentials?.nonce
+        ) {
           return null;
+        }
 
-          // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
+        try {
+          const address = credentials.address as string;
+          const signature = credentials.signature as string;
+          const nonce = credentials.nonce as string;
+
+          // Verify the signature
+          // The message format should match what the client signed
+          const message = `Sign in to AIPG Grid\n\nNonce: ${nonce}`;
+          const recoveredAddress = verifyMessage(message, signature);
+
+          // Verify that the recovered address matches the provided address (case-insensitive)
+          if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
+            return null;
+          }
+
+          // Return user object - address is the unique identifier for Web3
+          return {
+            id: address.toLowerCase(),
+            name: `${address.slice(0, 6)}...${address.slice(-4)}`, // Shortened address as display name
+            email: null,
+            image: null,
+            provider_id: `web3_${address.toLowerCase()}`
+          };
+        } catch (error) {
+          console.error('Web3 authentication error:', error);
+          return null;
         }
       }
     })
@@ -93,6 +106,10 @@ const authConfig = {
           // Use GitHub's ID as a stable identifier
           token.provider_id = `github_${profile.id}`;
         }
+      } else if (user && 'provider_id' in user && user.provider_id) {
+        // Handle credential-based providers (like Web3)
+        token.provider = 'web3';
+        token.provider_id = user.provider_id as string;
       }
       return token;
     },
