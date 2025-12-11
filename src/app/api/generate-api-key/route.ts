@@ -63,11 +63,6 @@ function generateRandomLetters(length: number): string {
   return result;
 }
 
-// Configuration: Should API keys be hashed before storing in database?
-// Set HASH_API_KEYS=false if the API server compares plaintext keys directly (like Horde)
-// Set HASH_API_KEYS=true for more security (keys cannot be retrieved if lost)
-const HASH_API_KEYS = process.env.HASH_API_KEYS === 'false';
-
 // Generate a secure API key that exactly matches Python's secrets.token_urlsafe(16)
 // This is critical for Horde API compatibility - the format must be identical
 function tokenUrlSafe(bytes: number = 16): string {
@@ -93,19 +88,6 @@ function generateApiKey(): string {
 // Hash the API key before storing it in the database (security best practice)
 function hashApiKey(key: string): string {
   return crypto.createHash('sha256').update(key).digest('hex');
-}
-
-// Prepare API key for storage based on configuration
-function prepareApiKeyForStorage(plaintextKey: string): string {
-  if (HASH_API_KEYS) {
-    return hashApiKey(plaintextKey);
-  }
-  return plaintextKey;
-}
-
-// Check if a stored API key is hashed (64 char hex) or plaintext
-function isKeyHashed(key: string): boolean {
-  return /^[a-f0-9]{64}$/i.test(key);
 }
 
 // Utility function to extract a stable OAuth ID
@@ -221,22 +203,26 @@ export async function POST(request: NextRequest) {
 
       if (user && user.api_key && !forceRegenerate) {
         // User exists and has an API key
-        const existingKeyIsHashed = isKeyHashed(user.api_key);
+        // Check if it's a hashed key (64 char hex) or plaintext (legacy)
+        const existingKeyIsHashed = /^[a-f0-9]{64}$/i.test(user.api_key);
 
-        if (existingKeyIsHashed && HASH_API_KEYS) {
-          // It's hashed and we're using hashed mode - can't show the original
+        if (existingKeyIsHashed) {
+          // It's already hashed, we can't show the original
+          // Return success but indicate the key is stored securely and cannot be retrieved
           const isTrusted = await ensureUserIsTrusted(user.id);
           return NextResponse.json({
+            // Don't return an error - return success with a message explaining the situation
             message:
               'Your API key is stored securely and cannot be retrieved. If you need a new key, use the "Create New Key" button below.',
-            keyStored: true,
-            requiresRegeneration: false,
+            keyStored: true, // Indicates key exists but can't be shown
+            requiresRegeneration: false, // User can choose to regenerate
             trusted: isTrusted,
             userId: user.id,
             username: user.username
           });
         } else {
-          // Plaintext key - return it (either we're in plaintext mode, or legacy key)
+          // Legacy plaintext key - return it (for backwards compatibility)
+          // Note: New keys will be hashed going forward
           const isTrusted = await ensureUserIsTrusted(user.id);
           return NextResponse.json({
             apiKey: user.api_key,
@@ -252,14 +238,15 @@ export async function POST(request: NextRequest) {
       // Generate new API key
       console.log('Generating new API key locally...');
       plaintextApiKey = generateApiKey();
+      hashedApiKey = hashApiKey(plaintextApiKey);
       console.log(
-        `API key generated successfully (length: ${plaintextApiKey.length}, HASH_API_KEYS: ${HASH_API_KEYS})`
+        'API key generated successfully (length:',
+        plaintextApiKey.length,
+        ')'
       );
 
-      // Prepare the key for storage based on configuration
-      // If HASH_API_KEYS=true, hash it; otherwise store plaintext
-      const apiKeyForStorage = prepareApiKeyForStorage(plaintextApiKey);
-      apiKey = apiKeyForStorage;
+      // Store the hashed version in the variable for DB operations
+      apiKey = hashedApiKey;
 
       // Re-check if user exists (in case of race conditions)
       if (!user) {
