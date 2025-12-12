@@ -106,21 +106,17 @@ function hashApiKey(key: string): string {
 // Utility function to extract a stable OAuth ID
 function getStableId(session: any): string | null {
   if (!session?.user?.id) {
-    console.log('[getStableId] No session or user.id found');
     return null;
   }
 
   const userId = session.user.id;
-  console.log(`[getStableId] Input userId: ${userId}`);
 
   // Already a stable ID from an OAuth provider (e.g., "google_12345..." or "web3_0x...")
   if (userId.includes('_')) {
-    console.log(`[getStableId] Found stable ID with underscore: ${userId}`);
     return userId;
   }
 
   // Handle legacy format or other ID formats by using the whole ID
-  console.log(`[getStableId] Using whole userId (no underscore): ${userId}`);
   return userId;
 }
 
@@ -164,17 +160,9 @@ export async function POST(request: NextRequest) {
     // Get the user's session
     const session = await auth();
 
-    // TEMPORARY LOGGING - Remove after debugging
-    console.log('=== API KEY GENERATION DEBUG ===');
-    console.log('Session:', JSON.stringify(session, null, 2));
-    console.log('Session user:', session?.user);
-    console.log('Session user id:', session?.user?.id);
-
     const oauthId = getStableId(session);
-    console.log('Extracted oauthId:', oauthId);
 
     if (!oauthId) {
-      console.log('ERROR: No oauthId found');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -183,14 +171,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // First, always check if user already exists in the database
-      console.log('Looking up user with oauthId:', oauthId);
       let user = await db.getUserByOAuthId(oauthId);
-      console.log(
-        'User lookup result:',
-        user
-          ? `Found user ID: ${user.id}, username: ${user.username}`
-          : 'User not found'
-      );
       let apiKey;
 
       // Check if we should generate a new key
@@ -249,53 +230,28 @@ export async function POST(request: NextRequest) {
       // If forceRegenerate is true, we skip the above check and generate a new key below
 
       // Generate new API key
-      console.log('Generating new API key locally...');
       plaintextApiKey = generateApiKey();
       hashedApiKey = hashApiKey(plaintextApiKey);
-      console.log(
-        'API key generated successfully (length:',
-        plaintextApiKey.length,
-        ')'
-      );
 
       // Store the hashed version in the variable for DB operations
       apiKey = hashedApiKey;
 
       // Re-check if user exists (in case of race conditions)
       if (!user) {
-        console.log('Re-checking for user after API key fetch...');
         user = await db.getUserByOAuthId(oauthId);
-        console.log(
-          'Re-check result:',
-          user ? `Found user ID: ${user.id}` : 'Still not found'
-        );
       }
 
       if (user) {
         // Update existing user's API key
-        console.log(`Updating existing user ${user.id} with new API key`);
         user = await db.updateUserApiKey(user.id, apiKey);
-        console.log('User updated successfully');
       } else {
         // Create new user - THIS IS WHERE WEB3 USERS GET CREATED (same as Google/GitHub)
         const username = generateRandomLetters(8); // Generate a random username
-        console.log(
-          `[USER CREATION] Creating new user with username: ${username}, oauthId: ${oauthId}`
-        );
-        console.log(
-          `[USER CREATION] This is the same flow for all auth providers (Web3, Google, GitHub)`
-        );
         try {
           user = await db.createUser(username, oauthId, apiKey);
-          console.log(
-            `[USER CREATION] ✓ User created successfully! ID: ${user.id}, username: ${user.username}`
-          );
         } catch (createError: any) {
           // If creation fails due to duplicate key (race condition - another request created the user)
           if (createError.code === '23505') {
-            console.log(
-              'User creation race condition detected, fetching existing user...'
-            );
             user = await db.getUserByOAuthId(oauthId);
 
             // If we still don't have a user, something is seriously wrong
@@ -307,9 +263,6 @@ export async function POST(request: NextRequest) {
             }
 
             // Update the API key for the now-found user
-            console.log(
-              `Race condition resolved: updating existing user ${user.id} with new API key`
-            );
             user = await db.updateUserApiKey(user.id, apiKey);
           } else {
             console.error(
@@ -323,11 +276,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Ensure user is trusted and get the status
-      console.log(`Ensuring user ${user.id} is trusted...`);
       const isTrusted = await ensureUserIsTrusted(user.id);
-      console.log(`User trusted status: ${isTrusted}`);
-
-      console.log('=== SUCCESS - Returning API key ===');
       // Return the plaintext key (only time it's exposed), store hashed in DB
       return NextResponse.json({
         apiKey: plaintextApiKey, // Return plaintext, but we stored hashed

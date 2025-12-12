@@ -159,3 +159,35 @@ export async function getUserRoles(userId: number) {
   ]);
   return result.rows;
 }
+
+// Check if a username is available (not taken by another user)
+export async function isUsernameAvailable(
+  username: string,
+  excludeUserId?: number
+): Promise<boolean> {
+  let result;
+  if (excludeUserId) {
+    result = await query(
+      'SELECT id FROM users WHERE LOWER(username) = LOWER($1) AND id != $2',
+      [username, excludeUserId]
+    );
+  } else {
+    result = await query(
+      'SELECT id FROM users WHERE LOWER(username) = LOWER($1)',
+      [username]
+    );
+  }
+  return result.rows.length === 0;
+}
+
+// Update user's username
+export async function updateUsername(
+  userId: number,
+  username: string
+): Promise<any> {
+  const result = await query(
+    'UPDATE users SET username = $1, last_active = NOW() WHERE id = $2 RETURNING *',
+    [username, userId]
+  );
+  return result.rows[0];
+}
