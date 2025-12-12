@@ -130,7 +130,7 @@ export default function Web3AuthButton() {
         ) : (
           <>
             <Icons.wallet className='mr-2 h-4 w-4' />
-            Continue with Wallet
+            Connect Wallet
           </>
         )}
       </Button>
