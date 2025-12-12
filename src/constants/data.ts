@@ -55,11 +55,11 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'API Key Generator',
-    url: '/dashboard/api-key',
+    title: 'Settings',
+    url: '/dashboard/settings',
     icon: 'settings',
     isActive: true,
-    shortcut: ['a', 'a'],
+    shortcut: ['s', 's'],
     items: [] // Now a standalone top-level item
   }
 ];

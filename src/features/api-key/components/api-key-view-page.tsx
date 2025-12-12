@@ -51,23 +51,15 @@ export default function ApiKeyGenerator() {
     setError(null);
 
     try {
-      console.log('[CLIENT] Fetching API key, regenerate:', regenerate);
       const response = await fetch('/api/generate-api-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ regenerate })
       });
 
-      console.log(
-        '[CLIENT] Response status:',
-        response.status,
-        response.statusText
-      );
       const data: ApiResponse = await response.json();
-      console.log('[CLIENT] Response data:', data);
 
       if (data.apiKey) {
-        console.log('[CLIENT] API key received successfully');
         setApiKey(data.apiKey);
         setTrusted(!!data.trusted);
         setGenerated(true);
@@ -83,7 +75,6 @@ export default function ApiKeyGenerator() {
         }
       } else if (data.keyStored) {
         // User has a key but it's hashed and can't be shown
-        console.log('[CLIENT] Key exists but is stored securely (hashed)');
         setGenerated(true); // Mark as generated so UI shows regenerate option
         setTrusted(!!data.trusted);
         if (data.username) setUsername(data.username);
@@ -97,15 +88,13 @@ export default function ApiKeyGenerator() {
       } else {
         const errorMessage =
           data.message || data.error || 'Unknown error occurred';
-        console.error('[CLIENT] Error generating API key:', errorMessage);
-        console.error('[CLIENT] Full error data:', data);
+        console.error('Error generating API key:', errorMessage);
         setError(errorMessage);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to connect to API';
-      console.error('[CLIENT] Exception caught:', error);
-      console.error('[CLIENT] Error message:', errorMessage);
+      console.error('Error fetching API key:', errorMessage);
       setError(errorMessage);
     }
     setLoading(false);
