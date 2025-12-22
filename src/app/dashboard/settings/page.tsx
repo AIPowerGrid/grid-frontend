@@ -1,5 +1,6 @@
 import { SearchParams } from 'nuqs/server';
 import SettingsViewPage from '@/features/settings/components/settings-view-page';
+import PageContainer from '@/components/layout/page-container';
 
 type pageProps = {
   searchParams: Promise<SearchParams>;
@@ -11,8 +12,8 @@ export const metadata = {
 
 export default async function Page({ searchParams }: pageProps) {
   return (
-    <div className='p-8'>
+    <PageContainer>
       <SettingsViewPage />
-    </div>
+    </PageContainer>
   );
 }
