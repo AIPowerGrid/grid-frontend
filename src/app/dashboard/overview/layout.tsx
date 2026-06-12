@@ -111,6 +111,49 @@ export default async function OverViewLayout({
           </Card>
         </div>
 
+        {/* Platform metrics — wired up as the data sources come online */}
+        <div className='grid gap-4 md:grid-cols-3'>
+          <Card className='border-dashed'>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-sm font-medium text-muted-foreground'>
+                Usage by Key
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className='text-xs text-muted-foreground'>
+                Per-key request and den breakdown — coming online with per-key
+                metering.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className='border-dashed'>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-sm font-medium text-muted-foreground'>
+                Latency
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className='text-xs text-muted-foreground'>
+                p50 / p95 time-to-first-token per model — coming online with
+                worker telemetry.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className='border-dashed'>
+            <CardHeader className='pb-2'>
+              <CardTitle className='text-sm font-medium text-muted-foreground'>
+                Spend &amp; Settlement
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className='text-xs text-muted-foreground'>
+                AIPG spend and epoch payout history — lights up when the first
+                settlement epoch lands on Base.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Existing additional content */}
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
           {/* <div className="col-span-4">{bar_stats}</div> */}

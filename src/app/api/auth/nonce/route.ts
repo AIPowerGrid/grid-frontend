@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
+import { GRID_API_BASE } from '@/lib/grid-api';
 
+/**
+ * Proxy the grid API's SIWE nonce. Nonces are minted and stored server-side
+ * by the API (single-use, 5-min TTL), so a signature can never be replayed —
+ * the old local randomBytes nonce was never stored or checked.
+ */
 export async function GET() {
-  // Generate a random nonce for the challenge
-  const nonce = randomBytes(32).toString('hex');
-
-  // In a production app, you'd store this nonce with an expiration time
-  // For now, we'll return it and verify it immediately
-
-  return NextResponse.json({ nonce });
+  try {
+    const res = await fetch(`${GRID_API_BASE}/v1/accounts/wallet/nonce`, {
+      method: 'POST',
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error(`nonce upstream ${res.status}`);
+    return NextResponse.json(await res.json());
+  } catch (e) {
+    console.error('nonce route:', e);
+    return NextResponse.json({ error: 'Nonce unavailable' }, { status: 502 });
+  }
 }

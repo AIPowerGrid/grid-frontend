@@ -56,7 +56,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@scalar/api-reference": "^1.52.1",
+    "@scalar/api-reference": "^1.59.3",
     "@scalar/nextjs-api-reference": "^0.5.15",
     "@tanstack/react-table": "^8.21.3",
     "@types/node": "22.10.2",
@@ -77,7 +77,7 @@
     "lucide-react": "^0.468.0",
     "match-sorter": "^8.2.0",
     "motion": "^11.18.2",
-    "next": "^16.2.3",
+    "next": "^16.2.5",
     "next-auth": "5.0.0-beta.30",
     "next-themes": "^0.4.6",
     "nextjs-toploader": "^3.9.17",
@@ -144,7 +144,16 @@
       "glob@>=10.2.0 <10.5.0": ">=10.5.0",
       "axios@>=1.0.0 <1.8.2": ">=1.8.2",
       "mdast-util-to-hast@>=13.0.0 <13.2.1": ">=13.2.1",
-      "next@>=15.1.0-canary.0 <15.1.9": ">=15.1.9"
+      "next@>=15.1.0-canary.0 <15.1.9": ">=15.1.9",
+      "protobufjs@<7.2.5": ">=7.2.5",
+      "shell-quote@<1.7.3": ">=1.7.3",
+      "axios@<1.12.0": ">=1.12.0",
+      "minimatch@<3.0.5": ">=3.0.5",
+      "fast-xml-parser@<4.4.1": ">=4.4.1",
+      "fast-uri@<2.4.0 >=2.0.0": ">=2.4.0",
+      "axios@<1.15.1": ">=1.15.1",
+      "minimatch@<9.0.6 >=9.0.0": ">=9.0.6",
+      "fast-xml-builder@<1.1.7": ">=1.1.7"
     }
   }
 }
