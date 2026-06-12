@@ -1,16 +1,16 @@
 import { Pool } from 'pg';
 import crypto from 'crypto';
 
-// Create a PostgreSQL connection pool with more flexible SSL settings
+// Create a PostgreSQL connection pool.
+// SSL verification is ON by default. Only POSTGRES_SSL_INSECURE=true (for a
+// self-signed dev DB) disables verification — never silently in production.
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
-  // Handle various SSL scenarios including self-signed certificates
   ssl:
     process.env.POSTGRES_SSL === 'false'
       ? false
       : {
-          // Set to false to accept self-signed certificates
-          rejectUnauthorized: false
+          rejectUnauthorized: process.env.POSTGRES_SSL_INSECURE !== 'true'
         }
 };
 

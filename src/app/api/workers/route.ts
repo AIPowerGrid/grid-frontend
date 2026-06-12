@@ -1,43 +1,27 @@
 import { NextResponse } from 'next/server';
+import { gridFetch, GridWorker } from '@/lib/grid-api';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // Fetch external workers data
-    const externalRes = await fetch(
-      'https://api.aipowergrid.io/api/v2/workers',
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+    const data = await gridFetch<{ count: number; workers: GridWorker[] }>(
+      '/v1/workers'
     );
-
-    if (!externalRes.ok) {
-      throw new Error(`Failed to fetch: ${externalRes.status}`);
-    }
-
-    const data = await externalRes.json();
-
-    // Simplify the worker data to only include a subset of fields.
-    const simplifiedWorkers = data.map((worker: any) => ({
-      id: worker.id,
-      name: worker.name,
-      type: worker.type,
-      online: worker.online,
-      performance: worker.performance,
-      requests_fulfilled: worker.requests_fulfilled,
-      //uncompleted_jobs: worker.uncompleted_jobs,
-      uptime: worker.uptime,
-      models: worker.models,
-      bridge_agent: worker.bridge_agent
+    // Shape expected by the workers list view; fields the v1 registry
+    // doesn't track yet render as placeholders.
+    const workers = data.workers.map((w) => ({
+      id: w.id,
+      name: w.name,
+      type: w.job_types.join(' / '),
+      online: w.online,
+      performance: null,
+      requests_fulfilled: 0,
+      uptime: null,
+      bridge_agent: '',
+      models: w.models
     }));
-
-    return NextResponse.json(simplifiedWorkers);
-  } catch (error) {
-    console.error('Error fetching workers:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+    return NextResponse.json(workers);
+  } catch (e) {
+    console.error('workers route:', e);
+    return NextResponse.json([], { status: 200 });
   }
 }

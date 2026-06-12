@@ -1,47 +1,24 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import { gridFetch } from '@/lib/grid-api';
 
-const aipgAddressRegex = /^[A][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
-
-export async function GET(request: NextRequest, context: any) {
-  // Destructure the address from the context object.
-  const { address } = context?.params || {};
-
-  // Validate the AIPG address.
-  if (!aipgAddressRegex.test(address)) {
-    return NextResponse.json(
-      { error: 'Invalid AIPG address format' },
-      { status: 400 }
-    );
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ address: string }> }
+) {
+  const { address } = await params;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    return NextResponse.json({ error: 'Invalid address' }, { status: 400 });
   }
-
-  // Build the external API URL.
-  const externalUrl = `http://172.22.22.33:5300/api/worker/${address}/payments`;
-
   try {
-    const externalRes = await fetch(externalUrl, {
-      headers: { 'Content-Type': 'application/json' }
+    const earnings = await gridFetch(`/v1/wallets/${address}/earnings`, {
+      next: { revalidate: 30 }
     });
-
-    if (!externalRes.ok) {
-      throw new Error(
-        `Failed to fetch from external API: ${externalRes.status}`
-      );
-    }
-
-    const data = await externalRes.json();
-
-    // Sort by timestamp (newest first).
-    data.sort(
-      (a: any, b: any) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error fetching worker payments:', error);
+    return NextResponse.json(earnings);
+  } catch (e) {
+    console.error('wallet earnings route:', e);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
+      { error: 'Earnings unavailable' },
+      { status: 502 }
     );
   }
 }

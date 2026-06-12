@@ -1,4 +1,5 @@
 import PageContainer from '@/components/layout/page-container';
+import { gridFetch, GridModelStatus, GridTotals } from '@/lib/grid-api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
 import { Icons } from '@/components/icons';
@@ -18,47 +19,28 @@ export default async function OverViewLayout({
   // bar_stats: React.ReactNode;
   // area_stats: React.ReactNode;
 }) {
-  // Use an environment variable for the absolute base URL.
-  // Set NEXTAUTH_URL in your environment variables (e.g. in .env.production and .env.local for dev)
-  const baseUrl = 'https://dashboard.aipowergrid.io';
-
-  // Build absolute URLs for internal API calls using the incoming baseUrl.
-  const workersResponse = await fetch(
-    new URL('/api/workers-count', baseUrl).toString(),
-    { next: { revalidate: 60 } }
-  );
-  let totalWorkers: number | string = 'N/A';
-  if (workersResponse.ok) {
-    const workersData = await workersResponse.json();
-    // Expecting an array of objects in the form: { name, count }
-    totalWorkers = workersData.reduce(
-      (sum: number, model: { count: number }) => sum + model.count,
-      0
-    );
-  }
-
-  // Build absolute URLs for internal API calls using the incoming baseUrl.
-  const modelsResponse = await fetch(
-    new URL('/api/models-count', baseUrl).toString(),
-    { next: { revalidate: 60 } }
-  );
-  let liveModelCount: number | string = 'N/A';
-  if (modelsResponse.ok) {
-    const data = await modelsResponse.json();
-    liveModelCount = data.count;
-  }
-
-  // Build absolute URLs for internal API calls using the incoming baseUrl.
-  const statsResponse = await fetch(
-    new URL('/api/historical-stats?timeframe=total', baseUrl).toString(),
-    { next: { revalidate: 60 } }
-  );
-  let totalImageGenModels: number | string = 'N/A';
-  let totalTextGenModels: number | string = 'N/A';
-  if (statsResponse.ok) {
-    const stats = await statsResponse.json();
-    totalImageGenModels = stats.image;
-    totalTextGenModels = stats.text;
+  // Server component: read the grid v1 API directly (ledger-backed stats —
+  // the same numbers settlement pays on). No self-HTTP hop, no hardcoded
+  // dashboard origin.
+  let activeWorkers: number | string = '—';
+  let modelsOnline: number | string = '—';
+  let jobs24h: number | string = '—';
+  let den24h: number | string = '—';
+  try {
+    const [workers, models, totals] = await Promise.all([
+      gridFetch<{ count: number }>('/v1/workers'),
+      gridFetch<GridModelStatus[]>('/v1/status/models'),
+      gridFetch<GridTotals>('/v1/stats/totals')
+    ]);
+    activeWorkers = workers.count;
+    modelsOnline = models.length;
+    const day = totals.day ?? {};
+    jobs24h = Object.values(day).reduce((s, v) => s + (v.jobs ?? 0), 0);
+    den24h = Math.round(
+      Object.values(day).reduce((s, v) => s + (v.den ?? 0), 0)
+    ).toLocaleString();
+  } catch (e) {
+    console.error('overview stats:', e);
   }
 
   return (
@@ -70,14 +52,14 @@ export default async function OverViewLayout({
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <CardTitle className='text-sm font-medium'>
-                Total Workers
+                Active Workers
               </CardTitle>
               <Icons.user className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{totalWorkers}</div>
+              <div className='text-2xl font-bold'>{activeWorkers}</div>
               <p className='text-xs text-muted-foreground'>
-                Systems actively processing tasks
+                GPUs serving the grid right now
               </p>
             </CardContent>
           </Card>
@@ -86,14 +68,14 @@ export default async function OverViewLayout({
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <CardTitle className='text-sm font-medium'>
-                Total Models
+                Models Online
               </CardTitle>
               <Icons.kanban className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{liveModelCount}</div>
+              <div className='text-2xl font-bold'>{modelsOnline}</div>
               <p className='text-xs text-muted-foreground'>
-                Distinct models powering operations
+                Distinct models ready to serve
               </p>
             </CardContent>
           </Card>
@@ -101,15 +83,13 @@ export default async function OverViewLayout({
           {/* Images Generated */}
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
-                Images Generated
-              </CardTitle>
+              <CardTitle className='text-sm font-medium'>Jobs (24h)</CardTitle>
               <Icons.media className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{totalImageGenModels}</div>
+              <div className='text-2xl font-bold'>{jobs24h}</div>
               <p className='text-xs text-muted-foreground'>
-                Visual outputs crafted on demand
+                Completed across text, image & video
               </p>
             </CardContent>
           </Card>
@@ -118,14 +98,14 @@ export default async function OverViewLayout({
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <CardTitle className='text-sm font-medium'>
-                Text Generated
+                den Earned (24h)
               </CardTitle>
               <Icons.post className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{totalTextGenModels}</div>
+              <div className='text-2xl font-bold'>{den24h}</div>
               <p className='text-xs text-muted-foreground'>
-                Linguistic creations served live
+                Work metered for on-chain settlement
               </p>
             </CardContent>
           </Card>

@@ -6,24 +6,17 @@ import {
   CardTitle,
   CardDescription
 } from '@/components/ui/card';
+import { gridFetch, GridModelStatus } from '@/lib/grid-api';
 
-interface Model {
-  performance: number;
-  queued: number;
-  jobs: number;
-  eta: number;
-  type: string;
-  name: string;
-  count: number;
-}
+type Model = GridModelStatus;
 
 export async function RecentModels() {
-  // Fetch models using the absolute URL.
-  const res = await fetch(`https://dashboard.aipowergrid.io/api/models`, {
-    next: { revalidate: 60 }
-  });
-
-  if (!res.ok) {
+  // Server component: read the grid API directly (no self-HTTP hop).
+  let models: Model[] = [];
+  try {
+    models = await gridFetch<Model[]>('/v1/status/models');
+  } catch (e) {
+    console.error('RecentModels:', e);
     return (
       <Card>
         <CardHeader>
@@ -34,8 +27,6 @@ export async function RecentModels() {
       </Card>
     );
   }
-
-  const models: Model[] = await res.json();
 
   return (
     <Card>
