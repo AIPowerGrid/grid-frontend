@@ -39,7 +39,7 @@ concrete detail in children. Delete stale notes instead of explaining history.
 The web console for the AI Power Grid: account/login, API-key management, usage + rewards
 stats, worker/model views, and hosted API reference. A Next.js 16 App Router app (React 19,
 TypeScript). It is mostly a **backend-for-frontend**: its `/api` route handlers proxy the
-grid v1 service (`system-core`/`grid_api`) and never expose the user's grid API key to the
+grid v1 service (`grid-core`/`grid_api`) and never expose the user's grid API key to the
 browser. Deployed on Vercel.
 
 ## Ownership
