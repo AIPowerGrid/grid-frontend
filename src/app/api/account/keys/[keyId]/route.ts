@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { GRID_API_BASE } from '@/lib/grid-api';
-import { resolveGridKey } from '@/lib/grid-account';
+import { resolveGridKey, getSessionToken } from '@/lib/grid-account';
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ keyId: string }> }
 ) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET
-  });
+  const token = await getSessionToken(req);
   const key = await resolveGridKey(token);
   if (!key) {
     return NextResponse.json({ error: 'No grid account' }, { status: 404 });

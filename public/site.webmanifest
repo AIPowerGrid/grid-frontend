@@ -1,0 +1,10 @@
+{
+  "name": "AI Power Grid Console",
+  "short_name": "AIPG Console",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ],
+  "theme_color": "#f8991d",
+  "background_color": "#0b0b0c",
+  "display": "standalone"
+}

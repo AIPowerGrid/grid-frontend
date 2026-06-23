@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import { GRID_API_BASE } from '@/lib/grid-api';
-import { resolveGridKey } from '@/lib/grid-account';
+import { resolveGridKey, getSessionToken } from '@/lib/grid-account';
 
 /**
  * Grid account profile + key list for the signed-in user. The account's
@@ -9,10 +8,7 @@ import { resolveGridKey } from '@/lib/grid-account';
  * proxy routes forward it server-side; it is never sent to the browser.
  */
 export async function GET(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET
-  });
+  const token = await getSessionToken(req);
   const key = await resolveGridKey(token);
   if (!key) {
     return NextResponse.json({ error: 'No grid account' }, { status: 404 });
@@ -29,10 +25,7 @@ export async function GET(req: NextRequest) {
  * the session key server-side; the grid format-checks the address.
  */
 export async function POST(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET
-  });
+  const token = await getSessionToken(req);
   const key = await resolveGridKey(token);
   if (!key) {
     return NextResponse.json({ error: 'No grid account' }, { status: 404 });

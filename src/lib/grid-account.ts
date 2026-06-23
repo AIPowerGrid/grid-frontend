@@ -1,4 +1,37 @@
+import { getToken } from 'next-auth/jwt';
+import type { NextRequest } from 'next/server';
 import { GRID_API_BASE } from './grid-api';
+
+// NextAuth v5 renamed the session cookie to `authjs.*`; `getToken` defaults to
+// the v4 `next-auth.*` name, so it silently returns null and every account
+// route 404s. Try the known cookie names (with matching salt) until one
+// decodes — robust across the v4→v5 naming and dev/prod (__Secure-) prefixes.
+const COOKIE_NAMES = [
+  '__Secure-authjs.session-token',
+  'authjs.session-token',
+  '__Secure-next-auth.session-token',
+  'next-auth.session-token'
+];
+
+export async function getSessionToken(req: NextRequest): Promise<any | null> {
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  if (!secret) return null;
+  for (const cookieName of COOKIE_NAMES) {
+    try {
+      const token = await getToken({
+        req,
+        secret,
+        cookieName,
+        salt: cookieName,
+        secureCookie: cookieName.startsWith('__Secure-')
+      } as any);
+      if (token) return token;
+    } catch {
+      // wrong salt/name for this cookie — try the next
+    }
+  }
+  return null;
+}
 
 /**
  * Resolve a working grid API key for the signed-in user.
