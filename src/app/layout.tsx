@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dashboard.aipowergrid.io'),
+  metadataBase: new URL('https://console.aipowergrid.io'),
   title: {
     default: 'AI Power Grid — Developer Console',
     template: '%s | AI Power Grid'
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://dashboard.aipowergrid.io',
+    url: 'https://console.aipowergrid.io',
     title: 'AI Power Grid — Developer Console',
     description:
       'The OpenAI-compatible API for a decentralized GenAI network. Manage API keys, monitor usage, and track your workers.',

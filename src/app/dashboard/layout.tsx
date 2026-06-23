@@ -7,7 +7,7 @@ import { cookies } from 'next/headers';
 
 // Merge the metadata with the base URL info from the root layout.
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dashboard.aipowergrid.io'),
+  metadataBase: new URL('https://console.aipowergrid.io'),
   title: 'AI Power Grid — Developer Console',
   description:
     'The OpenAI-compatible API for a decentralized GenAI network. Manage API keys, monitor usage, and track your workers.'
