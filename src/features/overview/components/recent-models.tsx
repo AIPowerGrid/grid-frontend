@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Card,
   CardHeader,
@@ -18,7 +18,7 @@ export async function RecentModels() {
   } catch (e) {
     console.error('RecentModels:', e);
     return (
-      <Card>
+      <Card className='h-full'>
         <CardHeader>
           <CardTitle>Active Models</CardTitle>
           <CardDescription>Error fetching models</CardDescription>
@@ -29,21 +29,17 @@ export async function RecentModels() {
   }
 
   return (
-    <Card>
+    <Card className='h-full'>
       <CardHeader>
         <CardTitle>Active Models</CardTitle>
         <CardDescription>Models currently running on The Grid</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className='space-y-8'>
+        <div className='max-h-[420px] space-y-4 overflow-y-auto pr-1'>
           {models.map((model) => (
             <div className='flex items-center' key={model.name}>
               <Avatar className='h-9 w-9'>
-                <AvatarImage
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(model.name)}`}
-                  alt={model.name}
-                />
-                <AvatarFallback>
+                <AvatarFallback className='bg-primary/10 text-xs font-medium text-primary'>
                   {model.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>

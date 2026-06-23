@@ -1,4 +1,5 @@
 import { SearchParams } from 'nuqs/server';
+import PageContainer from '@/components/layout/page-container';
 import RewardsView from '@/features/rewards/components/rewards-view';
 
 type pageProps = {
@@ -11,8 +12,8 @@ export const metadata = {
 
 export default async function Page({ searchParams }: pageProps) {
   return (
-    <div className='p-8'>
+    <PageContainer>
       <RewardsView />
-    </div>
+    </PageContainer>
   );
 }

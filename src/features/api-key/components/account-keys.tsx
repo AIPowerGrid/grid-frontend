@@ -105,7 +105,7 @@ export default function AccountKeys() {
   if (loading) return <p className='text-muted-foreground'>Loading account…</p>;
   if (legacy)
     return (
-      <div className='mx-auto w-full max-w-4xl'>
+      <div className='mx-auto w-full max-w-5xl'>
         <Card>
           <CardHeader>
             <CardTitle>Reconnect your account</CardTitle>
@@ -125,7 +125,7 @@ export default function AccountKeys() {
     );
 
   return (
-    <div className='mx-auto w-full max-w-4xl space-y-6'>
+    <div className='mx-auto w-full max-w-5xl space-y-6'>
       <Card>
         <CardHeader>
           <CardTitle>API Keys</CardTitle>

@@ -11,7 +11,7 @@ import Link from 'next/link';
  */
 export function QuickStart() {
   return (
-    <Card className='w-full overflow-hidden'>
+    <Card className='h-full w-full overflow-hidden'>
       <CardHeader className='bg-gradient-to-r from-primary to-primary/60 p-4'>
         <CardTitle className='text-xl font-bold text-primary-foreground'>
           Quick Resources
