@@ -109,36 +109,28 @@ export default function ApiUsageView() {
   };
 
   const textApiCode = `
-curl -X POST https://api.aipowergrid.io/api/v2/generate/text/async \\
+curl -X POST https://api.aipowergrid.io/v1/chat/completions \\
 -H "Content-Type: application/json" \\
--H "apikey: YOUR_API_KEY" \\
+-H "Authorization: Bearer YOUR_API_KEY" \\
 -d '{
-  "prompt": "Your prompt here",
-  "models": ["${selectedTextModel}"],
-  "params": {
-    "max_context_length": 512,
-    "max_length": 50,
-    "temperature": 0.7,
-    "top_p": 0.9
-  }
+  "model": "${selectedTextModel}",
+  "messages": [
+    { "role": "user", "content": "Your prompt here" }
+  ],
+  "temperature": 0.7,
+  "top_p": 0.9
 }'
   `;
 
   const imageApiCode = `
-curl -X POST https://api.aipowergrid.io/api/v2/generate/async \\
+curl -X POST https://api.aipowergrid.io/v1/images/generations \\
 -H "Content-Type: application/json" \\
--H "apikey: YOUR_API_KEY" \\
+-H "Authorization: Bearer YOUR_API_KEY" \\
 -d '{
+  "model": "${selectedImageModel}",
   "prompt": "Your prompt here",
-  "models": ["${selectedImageModel}"],
-  "params": {
-    "n": 1,
-    "width": 512,
-    "height": 512,
-    "steps": 30,
-    "sampler_name": "DDIM",
-    "cfg_scale": 7.5
-  }
+  "n": 1,
+  "size": "512x512"
 }'
   `;
 
