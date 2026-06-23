@@ -6,7 +6,7 @@ type pageProps = {
 };
 
 export const metadata = {
-  title: 'Dashboard : Rewards'
+  title: 'Rewards'
 };
 
 export default async function Page({ searchParams }: pageProps) {

@@ -8,18 +8,19 @@ type BreadcrumbItem = {
   link: string;
 };
 
-// This allows to add custom title as well
+// Custom titles for routes whose slug doesn't title-case cleanly
+// (e.g. "api-usage" → "API Playground"). Anything not listed here falls back
+// to a title-cased version of the path segments.
 const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard': [{ title: 'Dashboard', link: '/dashboard' }],
-  '/dashboard/employee': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Employee', link: '/dashboard/employee' }
+  '/dashboard/overview': [{ title: 'Dashboard', link: '/dashboard/overview' }],
+  '/dashboard/workers': [{ title: 'Grid Workers', link: '/dashboard/workers' }],
+  '/dashboard/api-usage': [
+    { title: 'API Playground', link: '/dashboard/api-usage' }
   ],
-  '/dashboard/product': [
-    { title: 'Dashboard', link: '/dashboard' },
-    { title: 'Product', link: '/dashboard/product' }
-  ]
-  // Add more custom mappings as needed
+  '/dashboard/api-key': [{ title: 'API Keys', link: '/dashboard/api-key' }],
+  '/dashboard/rewards': [{ title: 'Rewards', link: '/dashboard/rewards' }],
+  '/dashboard/settings': [{ title: 'Settings', link: '/dashboard/settings' }]
 };
 
 export function useBreadcrumbs() {

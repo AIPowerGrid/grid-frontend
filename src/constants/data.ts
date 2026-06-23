@@ -1,16 +1,5 @@
 import { NavItem } from 'types';
 
-export type Product = {
-  photo_url: string;
-  name: string;
-  description: string;
-  created_at: string;
-  price: number;
-  id: number;
-  category: string;
-  updated_at: string;
-};
-
 //Info: The following data is used for the sidebar navigation and Cmd K bar.
 export const navItems: NavItem[] = [
   {
@@ -61,39 +50,5 @@ export const navItems: NavItem[] = [
     isActive: true,
     shortcut: ['s', 's'],
     items: [] // Now a standalone top-level item
-  }
-];
-
-export interface Models {
-  name: string;
-  type: string;
-  count: number;
-}
-
-export const recentModelsData: Models[] = [
-  {
-    name: 'Olivia Martin',
-    type: 'olivia.martin@email.com',
-    count: 100
-  },
-  {
-    name: 'Jackson Lee',
-    type: 'jackson.lee@email.com',
-    count: 100
-  },
-  {
-    name: 'Isabella Nguyen',
-    type: 'isabella.nguyen@email.com',
-    count: 100
-  },
-  {
-    name: 'William Kim',
-    type: 'will@email.com',
-    count: 100
-  },
-  {
-    name: 'Sofia Davis',
-    type: 'sofia.davis@email.com',
-    count: 100
   }
 ];

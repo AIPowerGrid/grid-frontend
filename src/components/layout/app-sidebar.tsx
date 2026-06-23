@@ -33,12 +33,9 @@ import {
 import { navItems } from '@/constants/data';
 import {
   BadgeCheck,
-  Bell,
   ChevronRight,
   ChevronsUpDown,
-  CreditCard,
-  GalleryVerticalEnd,
-  LogOut
+  CreditCard
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -188,15 +185,18 @@ export default function AppSidebar() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>Account</DropdownMenuItem>
-                  {/* <DropdownMenuItem>
-                    <CreditCard />
-                    Billing
+                  <DropdownMenuItem asChild>
+                    <Link href='/dashboard/settings'>
+                      <BadgeCheck />
+                      Account & Settings
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Bell />
-                    Notifications
-                  </DropdownMenuItem> */}
+                  <DropdownMenuItem asChild>
+                    <Link href='/dashboard/api-key'>
+                      <CreditCard />
+                      API Keys
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()}>

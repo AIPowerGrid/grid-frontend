@@ -23,12 +23,19 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://dashboard.aipowergrid.io'),
   title: {
-    default: 'AI Power Grid Dashboard',
+    default: 'AI Power Grid — Developer Console',
     template: '%s | AI Power Grid'
   },
   description:
-    'Manage and monitor your AI Power Grid resources with our advanced dashboard.',
-  keywords: ['AI', 'Power Grid', 'Dashboard', 'Machine Learning', 'Analytics'],
+    'The developer console for AI Power Grid — the OpenAI-compatible API for a decentralized GenAI network. Manage API keys, monitor usage, and track your workers.',
+  keywords: [
+    'AI Power Grid',
+    'OpenAI-compatible API',
+    'decentralized AI',
+    'LLM API',
+    'image generation API',
+    'GPU network'
+  ],
   authors: [{ name: 'AI Power Grid Team' }],
   creator: 'AI Power Grid',
   publisher: 'AI Power Grid',
@@ -36,10 +43,10 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://dashboard.aipowergrid.io',
-    title: 'AI Power Grid Dashboard',
+    title: 'AI Power Grid — Developer Console',
     description:
-      'Manage and monitor your AI Power Grid resources with our advanced dashboard.',
-    siteName: 'AI Power Grid Dashboard',
+      'The OpenAI-compatible API for a decentralized GenAI network. Manage API keys, monitor usage, and track your workers.',
+    siteName: 'AI Power Grid',
     images: [
       {
         url: '/opengraph-image.png',
@@ -51,9 +58,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Power Grid Dashboard',
+    title: 'AI Power Grid — Developer Console',
     description:
-      'Manage and monitor your AI Power Grid resources with our advanced dashboard.',
+      'The OpenAI-compatible API for a decentralized GenAI network. Manage API keys, monitor usage, and track your workers.',
     images: ['/opengraph-image.png'],
     creator: '@AIPowerGrid'
   },

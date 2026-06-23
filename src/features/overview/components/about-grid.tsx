@@ -5,14 +5,15 @@ import {
   AccordionItem,
   AccordionTrigger
 } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Grid, Cpu, Network, Workflow, Code, Users } from 'lucide-react';
+import { Cpu, Network, Workflow, Code, Users } from 'lucide-react';
 
 /**
  * AboutGrid Component
  *
- * This component provides an overview of the AI Power Grid dashboard, its purpose, and functionality.
- * It explains the core features and how the system works, using a visually appealing and informative layout.
+ * A short orientation panel for the console: what the API does, how the grid
+ * works, and what this console gives you. Kept in sync with current product
+ * positioning (OpenAI-compatible /v1, decentralized GPU network, on-chain
+ * settlement).
  */
 export function AboutGrid() {
   return (
@@ -20,31 +21,34 @@ export function AboutGrid() {
       <Card>
         <CardHeader>
           <CardTitle className='flex items-center'>
-            <Cpu className='mr-2 h-4 w-4' /> Core Functionality
+            <Cpu className='mr-2 h-4 w-4' /> What you can build
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Accordion type='single' collapsible className='w-full'>
             <AccordionItem value='item-1'>
-              <AccordionTrigger>AI Image and Text Generation</AccordionTrigger>
+              <AccordionTrigger>OpenAI-compatible API</AccordionTrigger>
               <AccordionContent>
-                Generate high-quality images and coherent text using
-                state-of-the-art machine learning models through our API.
+                Point any OpenAI SDK at{' '}
+                <code>https://api.aipowergrid.io/v1</code> and change the base
+                URL. Chat, completions, images, and video use the request and
+                response shapes you already know.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value='item-2'>
-              <AccordionTrigger>API Abstraction</AccordionTrigger>
+              <AccordionTrigger>Text, image &amp; video</AccordionTrigger>
               <AccordionContent>
-                Our API simplifies interaction with complex AI systems, making
-                it easy for users to submit tasks and retrieve results.
+                Open models for chat and reasoning, image generation, and video,
+                all behind one API key. No per-model accounts or separate
+                billing.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value='item-3'>
-              <AccordionTrigger>Workflow Customization</AccordionTrigger>
+              <AccordionTrigger>Streaming &amp; agents</AccordionTrigger>
               <AccordionContent>
-                Create advanced &quot;apps&quot; that combine abilities of
-                different nodes or route text prompts based on knowledge
-                domains.
+                Token streaming over SSE and tool calls out of the box, on an
+                agent-friendly surface built to plug into apps and autonomous
+                workflows.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -54,15 +58,15 @@ export function AboutGrid() {
       <Card>
         <CardHeader>
           <CardTitle className='flex items-center'>
-            <Network className='mr-2 h-4 w-4' /> The Grid
+            <Network className='mr-2 h-4 w-4' /> How the grid works
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className='ml-5 list-disc space-y-2'>
-            <li>Distributed network of AI workers</li>
-            <li>Central director servers for job distribution</li>
-            <li>Blockchain-validated and incentivized models</li>
-            <li>Open access fostering innovation and creativity</li>
+            <li>A decentralized network of GPU workers serving open models</li>
+            <li>One OpenAI-compatible /v1 endpoint, no vendor lock-in</li>
+            <li>Every job metered and settled on-chain on Base</li>
+            <li>Open participation: run a worker, earn rewards</li>
           </ul>
         </CardContent>
       </Card>
@@ -70,30 +74,29 @@ export function AboutGrid() {
       <Card className='col-span-full'>
         <CardHeader>
           <CardTitle className='flex items-center'>
-            <Workflow className='mr-2 h-4 w-4' /> Dashboard Overview
+            <Workflow className='mr-2 h-4 w-4' /> Your console
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className='mb-4'>
-            This dashboard provides a comprehensive view of the AI Power Grid
-            system, including:
+            Everything you need to build on the grid, in one place:
           </p>
           <div className='grid gap-4 md:grid-cols-2'>
             <div className='flex items-center space-x-2'>
               <Code className='h-4 w-4 text-primary' />
-              <span>Real-time performance metrics</span>
+              <span>API keys — one per app, revoke anytime</span>
             </div>
             <div className='flex items-center space-x-2'>
               <Users className='h-4 w-4 text-primary' />
-              <span>Active worker counts and statuses</span>
+              <span>Workers and models online right now</span>
             </div>
             <div className='flex items-center space-x-2'>
               <Cpu className='h-4 w-4 text-primary' />
-              <span>Model utilization and statistics</span>
+              <span>A playground to test calls against live models</span>
             </div>
             <div className='flex items-center space-x-2'>
               <Network className='h-4 w-4 text-primary' />
-              <span>Network health and job distribution</span>
+              <span>Worker rewards from the settlement ledger</span>
             </div>
           </div>
         </CardContent>

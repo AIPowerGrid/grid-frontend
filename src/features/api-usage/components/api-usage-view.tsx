@@ -2,6 +2,15 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { Loader2, Code } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -30,8 +39,8 @@ export default function ApiUsageView() {
     async function fetchModels() {
       try {
         const [textRes, imageRes] = await Promise.all([
-          fetch('https://dashboard.aipowergrid.io/api/models?type=text'),
-          fetch('https://dashboard.aipowergrid.io/api/models?type=image')
+          fetch('/api/models?type=text'),
+          fetch('/api/models?type=image')
         ]);
         const textData = await textRes.json();
         const imageData = await imageRes.json();
@@ -48,19 +57,16 @@ export default function ApiUsageView() {
     e.preventDefault();
     setIsTextLoading(true);
     try {
-      const res = await fetch(
-        'https://dashboard.aipowergrid.io/api/generate-text',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: textPrompt,
-            apiKey,
-            uuid: 'test-uuid',
-            model: selectedTextModel
-          })
-        }
-      );
+      const res = await fetch('/api/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: textPrompt,
+          apiKey,
+          uuid: 'test-uuid',
+          model: selectedTextModel
+        })
+      });
       const data = await res.json();
       setTextResponse(data.response);
     } catch (error) {
@@ -74,31 +80,28 @@ export default function ApiUsageView() {
     e.preventDefault();
     setIsImageLoading(true);
     try {
-      const res = await fetch(
-        'https://dashboard.aipowergrid.io/api/generate-image',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: imagePrompt,
-            apiKey,
-            uuid: 'test-uuid',
-            model: selectedImageModel,
-            customSettings: {
-              nsfw: false,
-              batchSize: 1,
-              width: 512,
-              height: 512,
-              steps: 30,
-              sampler: 'default',
-              tiling: false,
-              clipSkip: 0,
-              karras: false,
-              hiResFix: false
-            }
-          })
-        }
-      );
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: imagePrompt,
+          apiKey,
+          uuid: 'test-uuid',
+          model: selectedImageModel,
+          customSettings: {
+            nsfw: false,
+            batchSize: 1,
+            width: 512,
+            height: 512,
+            steps: 30,
+            sampler: 'default',
+            tiling: false,
+            clipSkip: 0,
+            karras: false,
+            hiResFix: false
+          }
+        })
+      });
       const data = await res.json();
       setImageResponse(data.response);
     } catch (error) {
@@ -108,63 +111,72 @@ export default function ApiUsageView() {
     }
   };
 
-  const textApiCode = `
-curl -X POST https://api.aipowergrid.io/v1/chat/completions \\
--H "Content-Type: application/json" \\
--H "Authorization: Bearer YOUR_API_KEY" \\
--d '{
-  "model": "${selectedTextModel}",
-  "messages": [
-    { "role": "user", "content": "Your prompt here" }
-  ],
-  "temperature": 0.7,
-  "top_p": 0.9
-}'
-  `;
+  const textApiCode = `curl https://api.aipowergrid.io/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{
+    "model": "${selectedTextModel || 'MODEL_NAME'}",
+    "messages": [
+      { "role": "user", "content": "Your prompt here" }
+    ],
+    "stream": true
+  }'`;
 
-  const imageApiCode = `
-curl -X POST https://api.aipowergrid.io/v1/images/generations \\
--H "Content-Type: application/json" \\
--H "Authorization: Bearer YOUR_API_KEY" \\
--d '{
-  "model": "${selectedImageModel}",
-  "prompt": "Your prompt here",
-  "n": 1,
-  "size": "512x512"
-}'
-  `;
+  const imageApiCode = `curl https://api.aipowergrid.io/v1/images/generations \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{
+    "model": "${selectedImageModel || 'MODEL_NAME'}",
+    "prompt": "Your prompt here",
+    "n": 1,
+    "size": "1024x1024"
+  }'`;
 
   return (
     <div className='space-y-6 p-6'>
-      <div className='flex items-center justify-between'>
-        <h1 className='text-2xl font-bold'>AI Power Grid API Usage</h1>
-        <Button onClick={() => setShowCode(!showCode)} variant='outline'>
+      <div className='flex items-start justify-between gap-4'>
+        <div>
+          <h1 className='text-2xl font-bold tracking-tight'>API Playground</h1>
+          <p className='text-sm text-muted-foreground'>
+            Try a live call against the grid. The grid is OpenAI-compatible —
+            point any OpenAI SDK at{' '}
+            <code className='rounded bg-muted px-1 py-0.5 text-xs'>
+              https://api.aipowergrid.io/v1
+            </code>{' '}
+            and reuse the code below.
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowCode(!showCode)}
+          variant='outline'
+          className='shrink-0'
+        >
           <Code className='mr-2 h-4 w-4' />
-          {showCode ? 'Hide Code' : 'Show Code'}
+          {showCode ? 'Hide code' : 'Show code'}
         </Button>
       </div>
 
       {showCode && (
         <Card>
           <CardHeader>
-            <CardTitle>API Usage Examples</CardTitle>
+            <CardTitle>Copy-paste examples</CardTitle>
             <CardDescription>
-              Use these curl commands to interact with the AI Power Grid API
+              Swap in your API key and a model name from the lists below.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue='text'>
               <TabsList>
-                <TabsTrigger value='text'>Text Generation</TabsTrigger>
-                <TabsTrigger value='image'>Image Generation</TabsTrigger>
+                <TabsTrigger value='text'>Text generation</TabsTrigger>
+                <TabsTrigger value='image'>Image generation</TabsTrigger>
               </TabsList>
               <TabsContent value='text'>
-                <pre className='overflow-x-auto rounded-md bg-muted p-4'>
+                <pre className='overflow-x-auto rounded-md bg-muted p-4 text-xs'>
                   <code>{textApiCode}</code>
                 </pre>
               </TabsContent>
               <TabsContent value='image'>
-                <pre className='overflow-x-auto rounded-md bg-muted p-4'>
+                <pre className='overflow-x-auto rounded-md bg-muted p-4 text-xs'>
                   <code>{imageApiCode}</code>
                 </pre>
               </TabsContent>
@@ -174,94 +186,122 @@ curl -X POST https://api.aipowergrid.io/v1/images/generations \\
       )}
 
       <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-        {/* Text Generation Column */}
+        {/* Text Generation */}
         <Card>
           <CardHeader>
-            <CardTitle>Text Generation</CardTitle>
-            <CardDescription>Generate text using AI models</CardDescription>
+            <CardTitle>Text generation</CardTitle>
+            <CardDescription>
+              Send a chat completion to a live text model.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleTextSubmit} className='space-y-2'>
-              <input
-                type='text'
-                placeholder='Enter API Key'
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className='w-full rounded border p-2'
-              />
-              <input
-                type='text'
-                placeholder='Enter Text Prompt'
-                value={textPrompt}
-                onChange={(e) => setTextPrompt(e.target.value)}
-                className='w-full rounded border p-2'
-              />
-              <select
-                value={selectedTextModel}
-                onChange={(e) => setSelectedTextModel(e.target.value)}
-                className='w-full rounded border p-2'
-              >
-                <option value=''>Select Text Model</option>
-                {textModels.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+            <form onSubmit={handleTextSubmit} className='space-y-3'>
+              <div className='space-y-1.5'>
+                <Label htmlFor='text-api-key'>API key</Label>
+                <Input
+                  id='text-api-key'
+                  type='password'
+                  placeholder='Paste your API key'
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='text-model'>Model</Label>
+                <Select
+                  value={selectedTextModel}
+                  onValueChange={setSelectedTextModel}
+                >
+                  <SelectTrigger id='text-model'>
+                    <SelectValue placeholder='Select a text model' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {textModels.map((model) => (
+                      <SelectItem key={model.name} value={model.name}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='text-prompt'>Prompt</Label>
+                <Input
+                  id='text-prompt'
+                  type='text'
+                  placeholder='Ask the model something…'
+                  value={textPrompt}
+                  onChange={(e) => setTextPrompt(e.target.value)}
+                />
+              </div>
               <Button type='submit' disabled={isTextLoading} className='w-full'>
                 {isTextLoading ? (
                   <>
                     <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                    Generating...
+                    Generating…
                   </>
                 ) : (
-                  'Generate Text'
+                  'Generate text'
                 )}
               </Button>
             </form>
             {textResponse && (
-              <div className='mt-4 rounded border p-2'>
-                <h3 className='font-semibold'>Response:</h3>
-                <p>{textResponse}</p>
+              <div className='mt-4 rounded-md border p-3'>
+                <h3 className='mb-1 text-sm font-semibold'>Response</h3>
+                <p className='whitespace-pre-wrap text-sm'>{textResponse}</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Image Generation Column */}
+        {/* Image Generation */}
         <Card>
           <CardHeader>
-            <CardTitle>Image Generation</CardTitle>
-            <CardDescription>Generate images using AI models</CardDescription>
+            <CardTitle>Image generation</CardTitle>
+            <CardDescription>
+              Render a prompt with a live image model.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleImageSubmit} className='space-y-2'>
-              <input
-                type='text'
-                placeholder='Enter API Key'
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className='w-full rounded border p-2'
-              />
-              <input
-                type='text'
-                placeholder='Enter Image Prompt'
-                value={imagePrompt}
-                onChange={(e) => setImagePrompt(e.target.value)}
-                className='w-full rounded border p-2'
-              />
-              <select
-                value={selectedImageModel}
-                onChange={(e) => setSelectedImageModel(e.target.value)}
-                className='w-full rounded border p-2'
-              >
-                <option value=''>Select Image Model</option>
-                {imageModels.map((model) => (
-                  <option key={model.name} value={model.name}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+            <form onSubmit={handleImageSubmit} className='space-y-3'>
+              <div className='space-y-1.5'>
+                <Label htmlFor='image-api-key'>API key</Label>
+                <Input
+                  id='image-api-key'
+                  type='password'
+                  placeholder='Paste your API key'
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='image-model'>Model</Label>
+                <Select
+                  value={selectedImageModel}
+                  onValueChange={setSelectedImageModel}
+                >
+                  <SelectTrigger id='image-model'>
+                    <SelectValue placeholder='Select an image model' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {imageModels.map((model) => (
+                      <SelectItem key={model.name} value={model.name}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='image-prompt'>Prompt</Label>
+                <Input
+                  id='image-prompt'
+                  type='text'
+                  placeholder='Describe the image…'
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                />
+              </div>
               <Button
                 type='submit'
                 disabled={isImageLoading}
@@ -270,20 +310,21 @@ curl -X POST https://api.aipowergrid.io/v1/images/generations \\
                 {isImageLoading ? (
                   <>
                     <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                    Generating...
+                    Generating…
                   </>
                 ) : (
-                  'Generate Image'
+                  'Generate image'
                 )}
               </Button>
             </form>
             {imageResponse && (
-              <div className='mt-4 rounded border p-2'>
-                <h3 className='font-semibold'>Response:</h3>
+              <div className='mt-4 rounded-md border p-3'>
+                <h3 className='mb-2 text-sm font-semibold'>Response</h3>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imageResponse || '/placeholder.svg'}
                   alt='Generated'
-                  className='mx-auto w-full max-w-md'
+                  className='mx-auto w-full max-w-md rounded-md'
                 />
               </div>
             )}

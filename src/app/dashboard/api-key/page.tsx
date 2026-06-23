@@ -6,7 +6,7 @@ type pageProps = {
 };
 
 export const metadata = {
-  title: 'Dashboard : API Key'
+  title: 'API Keys'
 };
 
 export default async function Page({ searchParams }: pageProps) {
