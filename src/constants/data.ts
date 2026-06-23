@@ -36,7 +36,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'API Documentation ↗',
-    url: 'https://dashboard.aipowergrid.io/api-doc',
+    url: 'https://docs.aipowergrid.io',
     icon: 'network',
     shortcut: ['r', 'r'],
     isActive: false,

@@ -69,7 +69,11 @@ export function QuickStart() {
             <BookOpen className='h-5 w-5 text-primary' />
             <span className='text-sm font-medium'>API documentation</span>
           </div>
-          <Link href='/api-doc' target='_blank' rel='noopener noreferrer'>
+          <Link
+            href='https://docs.aipowergrid.io'
+            target='_blank'
+            rel='noopener noreferrer'
+          >
             <Button variant='outline' size='sm'>
               Open API reference
             </Button>
