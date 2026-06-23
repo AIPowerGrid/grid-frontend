@@ -32,7 +32,8 @@ import {
   UserX2Icon,
   X,
   Network,
-  FlaskConical
+  FlaskConical,
+  KeyRound
 } from 'lucide-react';
 
 export type Icon = LucideIcon;
@@ -57,6 +58,7 @@ export const Icons = {
   user2: UserCircle2Icon,
   media: Image,
   settings: Settings,
+  key: KeyRound,
   billing: CreditCard,
   ellipsis: MoreVertical,
   add: Plus,

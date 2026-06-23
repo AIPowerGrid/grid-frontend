@@ -13,8 +13,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import ApiKeyGenerator from './api-key-view-page';
-
 interface KeyRow {
   id: string;
   label: string | null;
@@ -104,8 +102,27 @@ export default function AccountKeys() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (legacy) return <ApiKeyGenerator />;
   if (loading) return <p className='text-muted-foreground'>Loading account…</p>;
+  if (legacy)
+    return (
+      <div className='mx-auto w-full max-w-4xl'>
+        <Card>
+          <CardHeader>
+            <CardTitle>Reconnect your account</CardTitle>
+          </CardHeader>
+          <CardContent className='space-y-3'>
+            <p className='text-sm text-muted-foreground'>
+              We couldn&apos;t find a grid account for this session. Sign out
+              and sign back in to provision one, then your API keys will appear
+              here.
+            </p>
+            <Button asChild variant='outline'>
+              <a href='/api/auth/signout'>Sign out</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
 
   return (
     <div className='mx-auto w-full max-w-4xl space-y-6'>
