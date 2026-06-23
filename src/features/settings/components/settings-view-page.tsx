@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import UsernameChangeSection from './username-change-section';
+import PayoutWalletSection from './payout-wallet-section';
 import ApiKeyGenerator from '@/features/api-key/components/api-key-view-page';
 import { Separator } from '@/components/ui/separator';
 
@@ -60,6 +61,10 @@ export default function SettingsViewPage() {
         currentUsername={currentUsername}
         onUsernameUpdate={handleUsernameUpdate}
       />
+
+      <Separator className='my-6' />
+
+      <PayoutWalletSection />
 
       <Separator className='my-6' />
 

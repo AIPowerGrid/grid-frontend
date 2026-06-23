@@ -22,3 +22,26 @@ export async function GET(req: NextRequest) {
   });
   return NextResponse.json(await res.json(), { status: res.status });
 }
+
+/**
+ * Set the account's payout wallet (where worker earnings are sent). Forwards
+ * the session key server-side; the grid format-checks the address.
+ */
+export async function POST(req: NextRequest) {
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET
+  });
+  const key = (token as any)?.gridApiKey as string | undefined;
+  if (!key) {
+    return NextResponse.json({ error: 'No grid account' }, { status: 404 });
+  }
+  const body = await req.json().catch(() => ({}));
+  const res = await fetch(`${GRID_API_BASE}/v1/account/payout-wallet`, {
+    method: 'POST',
+    headers: { apikey: key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet: body?.wallet ?? '' }),
+    cache: 'no-store'
+  });
+  return NextResponse.json(await res.json(), { status: res.status });
+}
