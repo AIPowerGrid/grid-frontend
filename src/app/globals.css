@@ -17,8 +17,9 @@
     --border: 34 15% 85%;
     --input: 34 15% 85%;
 
-    --primary: 220 16% 49%;
-    --primary-foreground: 0 0% 100%;
+    /* AIPG brand orange (#f8991d) */
+    --primary: 34 94% 54%;
+    --primary-foreground: 20 35% 12%;
 
     --secondary: 32 93% 58%;
     --secondary-foreground: 220 16% 22%;
@@ -29,7 +30,7 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --ring: 220 16% 49%;
+    --ring: 34 94% 54%;
 
     --radius: 0.5rem;
 
@@ -41,12 +42,12 @@
 
     --sidebar-background: 34 30% 98%;
     --sidebar-foreground: 220 16% 22%;
-    --sidebar-primary: 220 16% 49%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 34 94% 54%;
+    --sidebar-primary-foreground: 20 35% 12%;
     --sidebar-accent: 32 93% 58%;
     --sidebar-accent-foreground: 220 16% 22%;
     --sidebar-border: 34 15% 85%;
-    --sidebar-ring: 220 16% 49%;
+    --sidebar-ring: 34 94% 54%;
   }
 
   .dark {
@@ -60,28 +61,29 @@
     --card-foreground: 253 31% 99%;
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
-    --primary: 253 91% 58%;
-    --primary-foreground: 253 91% 98%;
+    /* AIPG brand orange (#f8991d) */
+    --primary: 34 94% 54%;
+    --primary-foreground: 20 35% 12%;
     --secondary: 253 7% 9%;
     --secondary-foreground: 253 7% 69%;
     --accent: 253 13% 14%;
     --accent-foreground: 253 13% 74%;
     --destructive: 339.2 90.36% 51.18%;
     --destructive-foreground: 0 0% 100%;
-    --ring: 253 91% 58%;
-    --chart-1: 253 91% 58%;
+    --ring: 34 94% 54%;
+    --chart-1: 34 94% 54%;
     --chart-2: 253 13% 74%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --sidebar-background: 253 43% 4%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 253 91% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 34 94% 54%;
+    --sidebar-primary-foreground: 20 35% 12%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 253 91% 58%%;
+    --sidebar-ring: 34 94% 54%;
   }
 }
 

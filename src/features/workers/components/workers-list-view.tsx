@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -12,11 +12,21 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search } from 'lucide-react';
+import { Search, Cpu, Wifi } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/layout/page-header';
+import { StatCard } from '@/components/ui/stat-card';
+
+interface Worker {
+  id: string;
+  name: string;
+  type: string;
+  online: boolean;
+  models: string[];
+}
 
 export default function WorkersListView() {
-  const [workers, setWorkers] = useState<any[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,11 +35,9 @@ export default function WorkersListView() {
     async function fetchWorkers() {
       try {
         const res = await fetch('/api/workers', { next: { revalidate: 60 } });
-        if (!res.ok) {
-          throw new Error(`Error: ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Error: ${res.statusText}`);
         const data = await res.json();
-        setWorkers(data);
+        setWorkers(Array.isArray(data) ? data : []);
       } catch (err: any) {
         console.error('Error fetching workers', err);
         setError('Failed to fetch workers data');
@@ -40,110 +48,119 @@ export default function WorkersListView() {
     fetchWorkers();
   }, []);
 
-  const filteredWorkers = workers.filter((worker) =>
-    worker.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const onlineCount = workers.filter((w) => w.online).length;
+  const filtered = workers.filter((w) =>
+    w.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <Card className='w-full'>
-      <CardHeader>
-        <CardTitle className='text-2xl font-bold'>Workers Overview</CardTitle>
-        <div className='relative'>
-          <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
-          <Input
-            placeholder='Search workers...'
-            className='pl-8'
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <WorkersTableSkeleton />
-        ) : error ? (
-          <div className='p-4 text-red-500'>{error}</div>
-        ) : (
-          <div className='overflow-x-auto'>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className='p-1'>Address</TableHead>
-                  <TableHead className='p-1'>Type</TableHead>
-                  <TableHead className='p-1'>Status</TableHead>
-                  <TableHead className='p-1'>Performance</TableHead>
-                  <TableHead className='p-1'>Req Fulfilled</TableHead>
-                  <TableHead className='p-1'>Uptime</TableHead>
-                  <TableHead className='p-1'>Agent</TableHead>
-                  <TableHead className='p-1'>Models</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredWorkers.map((worker) => (
-                  <TableRow key={worker.id}>
-                    <TableCell className='p-1 font-medium'>
-                      {worker.name}
-                    </TableCell>
-                    <TableCell className='p-1'>{worker.type}</TableCell>
-                    <TableCell className='p-1'>
-                      <Badge
-                        variant={worker.online ? 'default' : 'destructive'}
-                      >
-                        {worker.online ? 'Online' : 'Offline'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className='p-1'>
-                      {worker.performance ? worker.performance : 'N/A'}
-                    </TableCell>
-                    <TableCell className='p-1'>
-                      {worker.requests_fulfilled.toLocaleString()}
-                    </TableCell>
-                    <TableCell className='p-1'>
-                      {formatUptime(worker.uptime)}
-                    </TableCell>
-                    <TableCell className='p-1'>
-                      {extractBridgeAgent(worker.bridge_agent)}
-                    </TableCell>
-                    <TableCell className='p-1'>
-                      {worker.models.map((model: string) => (
-                        <Badge key={model} variant='outline' className='mr-1'>
-                          {model}
-                        </Badge>
-                      ))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+    <div className='mx-auto w-full max-w-6xl space-y-6'>
+      <PageHeader
+        title='Grid Workers'
+        description='GPUs serving open models on the network right now.'
+      />
+
+      <div className='grid gap-4 sm:grid-cols-2'>
+        <StatCard
+          label='Total workers'
+          value={loading ? '—' : workers.length}
+          hint='Registered on the grid'
+          icon={Cpu}
+        />
+        <StatCard
+          label='Online now'
+          value={loading ? '—' : onlineCount}
+          hint='Serving jobs this moment'
+          icon={Wifi}
+        />
+      </div>
+
+      <Card>
+        <CardContent className='space-y-4 p-5'>
+          <div className='relative max-w-sm'>
+            <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+            <Input
+              placeholder='Search workers…'
+              className='pl-8'
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {loading ? (
+            <WorkersTableSkeleton />
+          ) : error ? (
+            <div className='py-8 text-center text-sm text-red-500'>{error}</div>
+          ) : (
+            <div className='overflow-x-auto'>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Worker</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Models</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((worker) => (
+                    <TableRow key={worker.id}>
+                      <TableCell className='font-medium'>
+                        {worker.name}
+                      </TableCell>
+                      <TableCell className='capitalize'>
+                        {worker.type}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={worker.online ? 'default' : 'secondary'}
+                        >
+                          {worker.online ? 'Online' : 'Offline'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex flex-wrap gap-1'>
+                          {(worker.models ?? []).map((model) => (
+                            <Badge key={model} variant='outline'>
+                              {model}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className='py-8 text-center text-muted-foreground'
+                      >
+                        {searchTerm
+                          ? 'No workers match your search.'
+                          : 'No workers online right now.'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 function WorkersTableSkeleton() {
   return (
-    <div className='space-y-2'>
+    <div className='space-y-3'>
       {[...Array(5)].map((_, i) => (
-        <div key={i} className='flex space-x-2'>
-          {[...Array(8)].map((_, j) => (
-            <Skeleton key={j} className='h-4 w-[80px]' />
+        <div key={i} className='flex gap-3'>
+          {[...Array(4)].map((_, j) => (
+            <Skeleton key={j} className='h-5 flex-1' />
           ))}
         </div>
       ))}
     </div>
   );
-}
-
-function formatUptime(seconds: number) {
-  const days = Math.floor(seconds / (3600 * 24));
-  const hours = Math.floor((seconds % (3600 * 24)) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return `${days}d ${hours}h ${minutes}m`;
-}
-
-function extractBridgeAgent(agent: string): string {
-  // Return everything before the first colon, or "N/A" if missing
-  return agent ? agent.split(':')[0] : 'N/A';
 }

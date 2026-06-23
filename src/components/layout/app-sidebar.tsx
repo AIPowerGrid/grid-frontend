@@ -55,13 +55,17 @@ export default function AppSidebar() {
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader className='pt-3'>
-        <div className='flex flex-col items-center justify-center space-y-0.5'>
+        <div className='flex items-center gap-2 px-1'>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src='/aipg-logo.png'
+            alt='AI Power Grid'
+            className='h-9 w-9 shrink-0 object-contain'
+          />
           {state === 'expanded' && (
-            <img
-              src='/aipgweblogo.png'
-              alt='AI Power Grid'
-              className='h-10 object-contain brightness-90 invert filter transition-transform duration-200 dark:brightness-110 dark:invert-0'
-            />
+            <span className='text-base font-semibold leading-tight tracking-tight'>
+              AI Power Grid
+            </span>
           )}
         </div>
       </SidebarHeader>
