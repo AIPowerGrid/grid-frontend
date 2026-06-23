@@ -1,26 +1,14 @@
-import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import UserAuthForm from './user-auth-form';
 
 export const metadata: Metadata = {
-  title: 'Authentication',
-  description: 'Authentication forms built using the components.'
+  title: 'Sign in — AI Power Grid Console',
+  description: 'Sign in to the AI Power Grid developer console.'
 };
 
 export default function SignInViewPage() {
   return (
     <div className='relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
-      <Link
-        href='/examples/authentication'
-        className={cn(
-          buttonVariants({ variant: 'ghost' }),
-          'absolute right-4 top-4 hidden md:right-8 md:top-8'
-        )}
-      >
-        Login
-      </Link>
       <div className='relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex'>
         <div
           className='absolute inset-0 bg-cover bg-center bg-no-repeat'
@@ -32,14 +20,15 @@ export default function SignInViewPage() {
           <img src='/aipgweblogo.png' alt='AI Power Grid' className='h-6' />
         </div>
         <div className='relative z-20 mt-auto'>
-          <blockquote className='space-y-2'>
-            <p className='text-lg'>
-              &ldquo;The Grid is powered by the revolutionary AI Power
-              Grid—using decentralization and artificial intelligence to form a
-              dynamic network of workers that power your next application
-              seamlessly.&rdquo;
+          <blockquote className='space-y-3'>
+            <p className='text-2xl font-medium leading-snug'>
+              The last revolution was metered in kilowatt-hours.
+              <br />
+              This one is metered in tokens.
             </p>
-            <footer className='text-sm'>AI Grid Network</footer>
+            <footer className='text-sm text-white/70'>
+              AI Power Grid — open, decentralized GenAI on Base
+            </footer>
           </blockquote>
         </div>
       </div>

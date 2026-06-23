@@ -168,6 +168,26 @@ const authConfig = {
           (token as any).gridApiKey = (user as any).grid_api_key;
         }
       }
+
+      // Self-heal: if an OAuth session never got a grid key (sign-in raced the
+      // backend, or a first attempt failed), re-provision on the next request
+      // instead of dead-ending the user behind a manual sign-out.
+      if (
+        token.provider &&
+        token.provider !== 'web3' &&
+        token.provider_id &&
+        !(token as any).gridApiKey
+      ) {
+        const grid = await gridSession({
+          oauth_sub: token.provider_id as string,
+          email: (token.email as string) ?? null,
+          username: (token.name as string) ?? null
+        });
+        if (grid) {
+          (token as any).gridAccountId = grid.account_id;
+          (token as any).gridApiKey = grid.api_key;
+        }
+      }
       return token;
     },
     async session({ session, token, user }) {
