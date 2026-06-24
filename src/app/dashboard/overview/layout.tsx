@@ -1,6 +1,7 @@
 import PageContainer from '@/components/layout/page-container';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/ui/stat-card';
+import { YourGrid } from '@/features/overview/components/your-grid';
 import { gridFetch, GridModelStatus, GridTotals } from '@/lib/grid-api';
 import { Cpu, Boxes, Activity, Gauge } from 'lucide-react';
 import React from 'react';
@@ -44,32 +45,38 @@ export default async function OverViewLayout({
       <div className='mx-auto w-full max-w-6xl space-y-6'>
         <PageHeader title='Dashboard' description='Your grid at a glance.' />
 
-        {/* Uniform metric tiles */}
-        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-          <StatCard
-            label='Active workers'
-            value={activeWorkers}
-            hint='GPUs serving the grid now'
-            icon={Cpu}
-          />
-          <StatCard
-            label='Models online'
-            value={modelsOnline}
-            hint='Distinct models ready to serve'
-            icon={Boxes}
-          />
-          <StatCard
-            label='Jobs (24h)'
-            value={jobs24h}
-            hint='Text, image & video completed'
-            icon={Activity}
-          />
-          <StatCard
-            label='den earned (24h)'
-            value={den24h}
-            hint='Work metered for settlement'
-            icon={Gauge}
-          />
+        {/* Your account — workers, earnings, keys */}
+        <YourGrid />
+
+        {/* Network-wide totals (the whole grid, not just you) */}
+        <div className='space-y-3'>
+          <h2 className='text-lg font-semibold tracking-tight'>Network</h2>
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <StatCard
+              label='Active workers'
+              value={activeWorkers}
+              hint='GPUs serving the grid now'
+              icon={Cpu}
+            />
+            <StatCard
+              label='Models online'
+              value={modelsOnline}
+              hint='Distinct models ready to serve'
+              icon={Boxes}
+            />
+            <StatCard
+              label='Jobs (24h)'
+              value={jobs24h}
+              hint='Text, image & video completed'
+              icon={Activity}
+            />
+            <StatCard
+              label='den earned (24h)'
+              value={den24h}
+              hint='Work metered for settlement'
+              icon={Gauge}
+            />
+          </div>
         </div>
 
         {/* Equal-height two-column section */}
