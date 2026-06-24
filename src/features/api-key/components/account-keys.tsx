@@ -124,6 +124,12 @@ export default function AccountKeys() {
       </div>
     );
 
+  // Hide the internal dashboard-session key — it's console plumbing that
+  // powers this UI and rotates on login, not a key the user manages.
+  const userKeys = (account?.keys ?? []).filter(
+    (k) => k.label !== 'dashboard-session'
+  );
+
   return (
     <div className='mx-auto w-full max-w-5xl space-y-6'>
       <Card>
@@ -185,7 +191,7 @@ export default function AccountKeys() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(account?.keys ?? []).map((k) => (
+              {userKeys.map((k) => (
                 <TableRow key={k.id}>
                   <TableCell className='font-mono'>{k.id}…</TableCell>
                   <TableCell>{k.label ?? '—'}</TableCell>
@@ -203,7 +209,7 @@ export default function AccountKeys() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {!k.revoked && k.label !== 'dashboard-session' && (
+                    {!k.revoked && (
                       <Button
                         variant='ghost'
                         size='sm'
@@ -215,7 +221,7 @@ export default function AccountKeys() {
                   </TableCell>
                 </TableRow>
               ))}
-              {(account?.keys ?? []).length === 0 && (
+              {userKeys.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className='text-center'>
                     No keys yet — create your first one above.
@@ -224,10 +230,6 @@ export default function AccountKeys() {
               )}
             </TableBody>
           </Table>
-          <p className='text-xs text-muted-foreground'>
-            The <code>dashboard-session</code> key powers this console and
-            rotates automatically on every login.
-          </p>
         </CardContent>
       </Card>
     </div>
