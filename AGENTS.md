@@ -40,7 +40,9 @@ The web console for the AI Power Grid: account/login, API-key management, usage 
 stats, worker/model views, and hosted API reference. A Next.js 16 App Router app (React 19,
 TypeScript). It is mostly a **backend-for-frontend**: its `/api` route handlers proxy the
 grid v1 service (`grid-core`/`grid_api`) and never expose the user's grid API key to the
-browser. Deployed on Vercel.
+browser. Deployment is being reconciled: legacy Vercel config exists, while
+`next.config.mjs` contains Cloudflare/OpenNext dev wiring. Do not assume a deploy target
+until package scripts, dependencies, and provider config agree.
 
 ## Ownership
 
@@ -54,12 +56,12 @@ browser. Deployed on Vercel.
 - **`src/components/`** — shared/presentational UI (shadcn `ui/`, layout, kbar, providers).
 - **`src/hooks/`, `src/constants/`, `types/`** — shared hooks, static nav/data, global types.
 - **`src/middleware.ts`** — Auth.js route gate for `/dashboard/:path*`.
-- **`public/`** — static assets. **Root config** — `next.config.js`, `tailwind.config.js`,
-  `tsconfig.json`, `env.example.txt`, `vercel.json`.
+- **`public/`** — static assets. **Root config** — `next.config.js`, `next.config.mjs`,
+  `tailwind.config.js`, `tsconfig.json`, `env.example.txt`, `vercel.json`.
 
 ## Local Contracts
 
-- **Inherit org engineering standards:** `/Users/j/fix-axios-vuln/aipg-documentation/engineering-standards/`
+- **Inherit org engineering standards:** `../aipg-documentation/engineering-standards/`
   (core + `git.md` + `typescript.md`). The rules below are grid-frontend specializations.
 - **Secrets stay server-side.** The grid API key lives only in the httpOnly Auth.js JWT.
   Browser code must call same-origin `/api/...` routes; those routes attach the key and
@@ -84,6 +86,8 @@ browser. Deployed on Vercel.
   Talking to it from the browser → add/extend an `/api` proxy route.
 - Use the `@/` path alias (maps to `src/`). Validate forms with Zod + React Hook Form.
 - `pnpm install` requires `legacy-peer-deps=true` (already in `.npmrc`); Node >= 20.9, pnpm >= 9.
+- If changing deployment, update this file, README, package scripts/dependencies, and either
+  Vercel or Cloudflare config together. Do not leave both paths half-authoritative.
 
 ## Verification
 
