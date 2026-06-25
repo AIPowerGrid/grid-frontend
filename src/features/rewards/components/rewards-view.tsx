@@ -18,6 +18,7 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import BaseOutageBanner from './base-outage-banner';
+import PayoutsView from '@/app/payouts/payouts-view';
 import { Gauge, Briefcase, Coins, Wallet, ExternalLink } from 'lucide-react';
 
 const BASESCAN = 'https://basescan.org';
@@ -398,6 +399,7 @@ export default function RewardsView() {
       <BaseOutageBanner />
       <MyEarnings />
       <WalletLookup />
+      <PayoutsView embedded />
     </div>
   );
 }

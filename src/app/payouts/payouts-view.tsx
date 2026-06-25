@@ -65,7 +65,11 @@ function periodLabel(id: string): string {
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const when = (s: string | null) => (s ? new Date(s).toLocaleString() : '—');
 
-export default function TransparencyView() {
+export default function PayoutsView({
+  embedded = false
+}: {
+  embedded?: boolean;
+}) {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -85,16 +89,27 @@ export default function TransparencyView() {
   }, []);
 
   return (
-    <div className='mx-auto w-full max-w-5xl space-y-8'>
-      <header className='space-y-2'>
-        <h1 className='text-2xl font-semibold tracking-tight'>
-          Worker Payout Transparency
-        </h1>
-        <p className='text-sm text-muted-foreground'>
-          Every AIPG paid to grid workers is an on-chain transfer on Base. This
-          is the public ledger — verify any row on BaseScan.
-        </p>
-      </header>
+    <div
+      className={embedded ? 'space-y-5' : 'mx-auto w-full max-w-5xl space-y-8'}
+    >
+      {embedded ? (
+        <div>
+          <h2 className='text-lg font-semibold'>Network payouts</h2>
+          <p className='text-sm text-muted-foreground'>
+            All AIPG paid across the grid — on-chain, verifiable on BaseScan.
+          </p>
+        </div>
+      ) : (
+        <header className='space-y-2'>
+          <h1 className='text-2xl font-semibold tracking-tight'>
+            Worker Payouts
+          </h1>
+          <p className='text-sm text-muted-foreground'>
+            Every AIPG paid to grid workers is an on-chain transfer on Base.
+            This is the public ledger — verify any row on BaseScan.
+          </p>
+        </header>
+      )}
 
       {loading && (
         <div className='space-y-6'>
