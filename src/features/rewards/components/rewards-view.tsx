@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/ui/stat-card';
+import BaseOutageBanner from './base-outage-banner';
 import { Gauge, Briefcase, Coins, Wallet, ExternalLink } from 'lucide-react';
 
 const BASESCAN = 'https://basescan.org';
@@ -394,6 +395,7 @@ export default function RewardsView() {
         title='Worker Rewards'
         description='den is your work meter; AIPG pays out hourly on Base, pro-rata to den. Earnings accrue until you set a payout wallet — nothing is lost.'
       />
+      <BaseOutageBanner />
       <MyEarnings />
       <WalletLookup />
     </div>
