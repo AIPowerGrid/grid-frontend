@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main className='min-h-screen bg-background px-4 py-10 sm:px-6'>
+    <main className='h-dvh overflow-y-auto bg-background px-4 py-10 sm:px-6'>
       <PayoutsView />
     </main>
   );

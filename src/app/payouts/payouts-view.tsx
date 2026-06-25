@@ -12,9 +12,20 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Coins, Users, ReceiptText, Clock, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Coins,
+  Users,
+  ReceiptText,
+  Clock,
+  ExternalLink,
+  Cpu,
+  Wallet,
+  ArrowRight
+} from 'lucide-react';
 
 const BASESCAN = 'https://basescan.org';
+const DOCS = 'https://docs.aipowergrid.io';
 
 interface Totals {
   aipg_paid: number;
@@ -109,6 +120,41 @@ export default function PayoutsView({
             This is the public ledger — verify any row on BaseScan.
           </p>
         </header>
+      )}
+
+      {!embedded && (
+        <Card className='border-primary/20 bg-primary/5'>
+          <CardContent className='flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='space-y-1'>
+              <h2 className='flex items-center gap-2 font-semibold'>
+                <Cpu className='h-4 w-4 text-primary' />
+                Want to earn AIPG? Run a worker.
+              </h2>
+              <p className='text-sm text-muted-foreground'>
+                Point a GPU at the grid, set a Base payout wallet, and your
+                earnings appear here — paid out hourly, on-chain.
+              </p>
+            </div>
+            <div className='flex shrink-0 flex-wrap gap-2'>
+              <Button asChild>
+                <a
+                  href={`${DOCS}/quick-start`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                >
+                  Run a worker
+                  <ArrowRight className='ml-1.5 h-4 w-4' />
+                </a>
+              </Button>
+              <Button asChild variant='outline'>
+                <a href='/dashboard/settings'>
+                  <Wallet className='mr-1.5 h-4 w-4' />
+                  Set payout wallet
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {loading && (
