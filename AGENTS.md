@@ -49,13 +49,13 @@ until package scripts, dependencies, and provider config agree.
 - **`src/app/`** — App Router. `api/` = server route handlers (the BFF); owned in its own
   AGENTS.md. `dashboard/` = authed pages (parallel routes under `overview/`). `(auth)/` =
   sign-in. `api-doc/` = hosted OpenAPI reference (Scalar route over `/swagger.json`).
-- **`src/lib/`** — shared server infra: Auth.js config, grid v1 client, Postgres pool.
+- **`src/lib/`** — shared server infra: Auth.js config and the grid v1 client.
   Owned in its own AGENTS.md.
 - **`src/features/`** — per-route feature UI (one folder per dashboard area). Owned in its
   own AGENTS.md.
 - **`src/components/`** — shared/presentational UI (shadcn `ui/`, layout, kbar, providers).
 - **`src/hooks/`, `src/constants/`, `types/`** — shared hooks, static nav/data, global types.
-- **`src/middleware.ts`** — Auth.js route gate for `/dashboard/:path*`.
+- **`src/proxy.ts`** — Auth.js route gate for `/dashboard/:path*`.
 - **`public/`** — static assets. **Root config** — `next.config.js`, `next.config.mjs`,
   `tailwind.config.js`, `tsconfig.json`, `env.example.txt`, `vercel.json`.
 
@@ -69,14 +69,12 @@ until package scripts, dependencies, and provider config agree.
   client component.
 - **The grid v1 API is the source of truth** for accounts, keys, stats, workers, models, and
   rewards (`src/lib/grid-api.ts`, default `https://api.aipowergrid.io`). New data needs come
-  from grid v1 endpoints, not new local tables.
-- **Legacy Postgres is being retired.** `src/lib/db.ts` talks directly to the legacy horde
-  `users`/`user_roles` tables (used only by `update-username` and `generate-api-key`). Do not
-  add new direct-DB routes — route new account work through grid v1.
+  from grid v1 endpoints, not new local tables. There is no local database layer — route all
+  account work through grid v1.
 - **Auth providers:** Google, GitHub, and Web3/SIWE (`src/lib/auth.config.ts`). Login
   provisions a grid account + session key via grid v1; it soft-fails (key features degrade)
   rather than blocking sign-in.
-- **`src/middleware.ts`** gates `/dashboard/:path*` — unauthenticated requests redirect to `/`.
+- **`src/proxy.ts`** gates `/dashboard/:path*` — unauthenticated requests redirect to `/`.
 
 ## Work Guidance
 
@@ -91,12 +89,13 @@ until package scripts, dependencies, and provider config agree.
 
 ## Verification
 
-- `pnpm lint` (ESLint, `eslint-config-next`) and `pnpm format:check` (Prettier).
+- `pnpm lint` (ESLint, `eslint-config-next`) and `pnpm format:check`
+  (non-writing Prettier check).
 - `pnpm build` must succeed (typecheck runs in build). No unit test suite exists yet.
 - Husky + lint-staged run Prettier on staged files pre-commit.
 
 ## Child DOX Index
 
 - [src/app/api/AGENTS.md](src/app/api/AGENTS.md) — server route handlers (the BFF / grid proxy).
-- [src/lib/AGENTS.md](src/lib/AGENTS.md) — auth, grid v1 client, Postgres pool.
+- [src/lib/AGENTS.md](src/lib/AGENTS.md) — auth and the grid v1 client.
 - [src/features/AGENTS.md](src/features/AGENTS.md) — per-route feature UI.

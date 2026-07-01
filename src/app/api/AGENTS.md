@@ -19,6 +19,8 @@ the client.
 - `generate-text/`, `generate-image/` — dashboard playground generation proxies.
 - `models/`, `models-count/`, `workers/`, `workers-count/`, `historical-stats/`,
   `text-gen-stats/`, `image-gen-stats/` — public stats/registry reads via `gridFetch`.
+- `validator/scorecards/` — authed proxy for aggregate validator evidence via
+  `/v1/validator/scorecards`; informational only, no raw evidence or economic effects.
 - `sentry/workerRewards/[address]/` — wallet earnings via grid v1 (validates `0x` address).
 
 ## Local Contracts

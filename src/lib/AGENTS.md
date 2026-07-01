@@ -10,7 +10,7 @@ pool, and small shared utilities.
 - `auth.ts` / `auth.config.ts` — Auth.js (NextAuth) setup. Providers: Google, GitHub, and
   Web3/SIWE. On login, provisions a grid account + session API key via grid v1 and stashes it
   in the httpOnly JWT (`gridApiKey`); the session only ever exposes `gridAccountId`, never the
-  key. `auth.config.ts` is also imported by `src/middleware.ts` (the route gate).
+  key. `auth.config.ts` is also imported by `src/proxy.ts` (the route gate).
 - `grid-api.ts` — `GRID_API_BASE` + `gridFetch` (cached `fetch` wrapper) and v1 response
   types. The single client for the grid v1 service.
 - `db.ts` — **legacy** Postgres pool + `users`/`user_roles` helpers (SSL on by default).
