@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import UserAuthForm from './user-auth-form';
 
 export const metadata: Metadata = {
@@ -17,7 +18,14 @@ export default function SignInViewPage() {
         <div className='absolute inset-0 bg-black/60' />{' '}
         {/* Darkening overlay */}
         <div className='relative z-20 flex items-center text-lg font-medium'>
-          <img src='/aipgweblogo.png' alt='AI Power Grid' className='h-6' />
+          <Image
+            src='/aipgweblogo.png'
+            alt='AI Power Grid'
+            width={256}
+            height={27}
+            className='h-6 w-auto'
+            priority
+          />
         </div>
         <div className='relative z-20 mt-auto'>
           <blockquote className='space-y-3'>
@@ -35,10 +43,13 @@ export default function SignInViewPage() {
       <div className='flex h-full items-center p-4 lg:p-8'>
         <div className='mx-auto flex w-full flex-col justify-center space-y-4 sm:w-[350px]'>
           <div className='mb-6 flex justify-center'>
-            <img
+            <Image
               src='/aipg-main.png'
               alt='AIPG Main Logo'
+              width={671}
+              height={671}
               className='h-16 w-auto'
+              priority
             />
           </div>
           <div className='flex flex-col space-y-2 text-center'>

@@ -27,6 +27,14 @@ export const navItems: NavItem[] = [
     items: [] // Empty array as there are no child items for Workers
   },
   {
+    title: 'Validator Evidence',
+    url: '/dashboard/validators',
+    icon: 'shieldCheck',
+    shortcut: ['v', 'v'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Rewards (Beta)',
     url: '/dashboard/rewards',
     icon: 'billing',

@@ -1,6 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Image, MessageSquare, BookOpen } from 'lucide-react';
+import {
+  ExternalLink,
+  Image as ImageIcon,
+  MessageSquare,
+  BookOpen
+} from 'lucide-react';
 import Link from 'next/link';
 
 /**
@@ -28,7 +33,7 @@ export function QuickStart() {
             <Card className='group cursor-pointer overflow-hidden transition-all hover:shadow-md hover:ring-2 hover:ring-primary/50'>
               <CardContent className='flex items-center gap-4 p-4'>
                 <div className='rounded-full bg-primary/10 p-3 transition-colors group-hover:bg-primary/20'>
-                  <Image className='h-6 w-6 text-primary' />
+                  <ImageIcon className='h-6 w-6 text-primary' />
                 </div>
                 <div>
                   <h3 className='font-semibold'>Art Gallery</h3>

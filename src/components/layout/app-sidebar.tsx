@@ -50,7 +50,7 @@ import { Icons } from '../icons';
 export default function AppSidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const { state, isMobile } = useSidebar();
+  const { state } = useSidebar();
 
   return (
     <Sidebar collapsible='icon'>

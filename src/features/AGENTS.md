@@ -13,8 +13,10 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 - `api-key/` — API-key view + account-keys management UI.
 - `api-usage/` — usage/metering view. `rewards/` — wallet rewards view.
 - `workers/` — worker list view. `profile/` — profile view + create form (`utils/form-schema.ts`).
-- `validators/` — aggregate validator evidence scorecards. V0 evidence is
-  informational only; never present it as routing, payout, strike, or slash authority.
+- `validators/` — aggregate validator evidence scorecards plus
+  assignment/quorum health. Preview evidence and assignment-bound authoritative
+  evidence must be visually distinct; never present either as live routing,
+  payout, strike, or slash authority.
 - `settings/` — settings view + username-change section.
 
 ## Local Contracts

@@ -2,7 +2,7 @@
 
 The Grid Frontend is built with the following stack:
 
-- Framework - [Next.js 15](https://nextjs.org/13)
+- Framework - [Next.js 16](https://nextjs.org/)
 - Language - [TypeScript](https://www.typescriptlang.org)
 - Styling - [Tailwind CSS](https://tailwindcss.com)
 - Components - [Shadcn-ui](https://ui.shadcn.com)
@@ -20,7 +20,7 @@ The Grid Frontend is built with the following stack:
 ## Getting Started
 
 > [!NOTE]  
-> We are using **Next 15** with **React 19**, follow these steps:
+> We are using **Next 16** with **React 19**, follow these steps:
 
 Clone the repo:
 

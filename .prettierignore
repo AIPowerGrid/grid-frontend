@@ -39,6 +39,7 @@ yarn-error.log*
 CHANGELOG.md
 
 pnpm-lock.yaml
+public/swagger.json
 
 # Other common ignores
 node_modules
