@@ -6,7 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/ui/stat-card';
-import { Cpu, Gauge, KeyRound, Briefcase, ExternalLink } from 'lucide-react';
+import {
+  Cpu,
+  Gauge,
+  KeyRound,
+  Briefcase,
+  ExternalLink,
+  Gift,
+  Coins
+} from 'lucide-react';
 
 interface WorkerRow {
   name: string;
@@ -27,17 +35,20 @@ interface AccountWorkers {
 export function YourGrid() {
   const [acct, setAcct] = useState<any>(null);
   const [w, setW] = useState<AccountWorkers | null>(null);
+  const [credits, setCredits] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [a, wr] = await Promise.all([
+        const [a, wr, cr] = await Promise.all([
           fetch('/api/account').then((r) => (r.ok ? r.json() : null)),
-          fetch('/api/account/workers').then((r) => (r.ok ? r.json() : null))
+          fetch('/api/account/workers').then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/account/credits').then((r) => (r.ok ? r.json() : null))
         ]);
         setAcct(a);
         setW(wr);
+        setCredits(cr);
       } catch {
         /* leave nulls — section degrades to keys CTA */
       } finally {
@@ -90,6 +101,59 @@ export function YourGrid() {
           icon={KeyRound}
         />
       </div>
+
+      {/* Credits — daily free allowance + purchased balance */}
+      <Card>
+        <CardContent className='flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='flex flex-wrap items-center gap-8'>
+            <div>
+              <div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
+                <Gift className='h-3.5 w-3.5' /> Free today
+                {credits?.free?.holder_bonus_active && (
+                  <Badge variant='secondary' className='ml-1'>
+                    holder bonus
+                  </Badge>
+                )}
+              </div>
+              <div className='text-2xl font-semibold tabular-nums'>
+                {loading || !credits
+                  ? '—'
+                  : `$${Number(credits.free?.remaining_usd ?? 0).toFixed(2)}`}
+                {!loading && credits && (
+                  <span className='text-sm font-normal text-muted-foreground'>
+                    {' '}
+                    / ${Number(credits.free?.daily_cap_usd ?? 0).toFixed(2)}
+                  </span>
+                )}
+              </div>
+              <div className='text-xs text-muted-foreground'>
+                Resets at UTC midnight
+              </div>
+            </div>
+
+            <div>
+              <div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
+                <Coins className='h-3.5 w-3.5' /> Balance
+              </div>
+              <div className='text-2xl font-semibold tabular-nums'>
+                {loading || !credits
+                  ? '—'
+                  : `$${Number(credits.paid?.balance_usd ?? 0).toFixed(2)}`}
+              </div>
+              <div className='text-xs text-muted-foreground'>
+                Purchased, never expires
+              </div>
+            </div>
+          </div>
+
+          {!loading && credits && !credits.charging_enabled && (
+            <p className='max-w-[16rem] text-xs text-muted-foreground'>
+              Billing isn’t live yet — you’re on the free grid. Top-ups are
+              coming soon.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Worker list, or a run-a-worker nudge */}
       {!loading && hasWorkers && (
