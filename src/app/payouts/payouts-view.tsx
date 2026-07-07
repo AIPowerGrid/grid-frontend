@@ -13,6 +13,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import LiveJobs from './live-jobs';
 import {
   Coins,
   Users,
@@ -156,6 +157,8 @@ export default function PayoutsView({
           </CardContent>
         </Card>
       )}
+
+      {!embedded && <LiveJobs />}
 
       {loading && (
         <div className='space-y-6'>
