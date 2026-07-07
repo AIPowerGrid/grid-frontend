@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import PayoutWalletSection from './payout-wallet-section';
+import PayoutPreferenceSection from './payout-preference-section';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { KeyRound } from 'lucide-react';
@@ -17,6 +18,8 @@ export default function SettingsViewPage() {
       </div>
 
       <PayoutWalletSection />
+
+      <PayoutPreferenceSection />
 
       <Separator className='my-6' />
 
