@@ -12,6 +12,14 @@ the client.
 - `auth/[...nextauth]/` — Auth.js handler. `auth/nonce/` — proxies the grid SIWE nonce.
 - `account/`, `account/keys/`, `account/keys/[keyId]/` — account + API-key CRUD; pull the key
   from the Auth.js JWT (`getToken`) and forward to `/v1/account*`.
+- `account/credits/` — the signed-in account's spendable credits (free daily +
+  paid pockets; forwards the session key to `/v1/account/credits`).
+- `account/jobs/` — operator trust view (my workers' jobs + den + proof) via
+  `/v1/account/jobs`.
+- `account/payout-preference/` — set payout asset / AIPG slice via the
+  session-gated `/v1/account/payout-preference`.
+- `payouts/public/` and `jobs/recent/` — PUBLIC no-auth proxies for the
+  transparency page (aggregate payouts + the redacted live-jobs feed).
 - `generate-api-key/`, `update-username/` — **legacy**: direct `src/lib/db` writes to the
   Postgres `users` table (not grid v1). `generate-api-key` has its own in-memory rate limiter.
 - `openai/v1/chat/completions/`, `openai/v1/completions/`, `openai/v1/models/` —
