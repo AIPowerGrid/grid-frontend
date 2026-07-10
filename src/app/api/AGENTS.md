@@ -3,9 +3,8 @@
 ## Purpose
 
 Same-origin server endpoints the browser calls. Most are thin proxies that attach the user's
-grid API key and forward to the grid v1 service; a few read aggregated public stats, and two
-legacy routes still hit Postgres directly. This layer exists so the grid key never reaches
-the client.
+grid API key and forward to the grid v1 service; a few read aggregated public stats. This
+layer exists so the grid key never reaches the client.
 
 ## Ownership
 
@@ -20,8 +19,6 @@ the client.
   session-gated `/v1/account/payout-preference`.
 - `payouts/public/` and `jobs/recent/` — PUBLIC no-auth proxies for the
   transparency page (aggregate payouts + the redacted live-jobs feed).
-- `generate-api-key/`, `update-username/` — **legacy**: direct `src/lib/db` writes to the
-  Postgres `users` table (not grid v1). `generate-api-key` has its own in-memory rate limiter.
 - `openai/v1/chat/completions/`, `openai/v1/completions/`, `openai/v1/models/` —
   OpenAI-compatible passthrough; `chat/completions` streams SSE straight through.
 - `generate-text/`, `generate-image/` — dashboard playground generation proxies.
@@ -41,7 +38,7 @@ the client.
   (stream SSE with `Cache-Control: no-cache`). Reshape only where a view needs it (see
   `workers/`), and degrade gracefully (return `[]`/`502` on upstream failure) rather than 500.
 - **Stats reads** use `gridFetch` (cached, `revalidate`); do not bypass it with raw `fetch`.
-- Do not add new direct-DB routes — `db.ts` is legacy and being retired (see root).
+- Do not add direct-database routes. Grid core owns persistence and authorization.
 
 ## Work Guidance
 

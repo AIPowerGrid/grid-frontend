@@ -35,3 +35,14 @@ git clone https://github.com/AIPowerGrid/grid-frontend.git
 - `pnpm run dev`
 
 You should now be able to access the application at http://localhost:3000.
+
+## Architecture
+
+The console is a Next.js backend-for-frontend for Grid core. Browser components
+call same-origin `/api` handlers; those server handlers attach the authenticated
+Grid session key. Accounts, API keys, usage, workers, validator scorecards, and
+payouts live in Grid core. The console does not require direct database access.
+
+Production currently deploys on Vercel. The checked-in Cloudflare/OpenNext import
+is incomplete and is not a supported deploy path until its package, Worker
+configuration, build, and runtime smoke tests are committed together.

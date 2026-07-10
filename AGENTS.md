@@ -40,15 +40,15 @@ The web console for the AI Power Grid: account/login, API-key management, usage 
 stats, worker/model views, and hosted API reference. A Next.js 16 App Router app (React 19,
 TypeScript). It is mostly a **backend-for-frontend**: its `/api` route handlers proxy the
 grid v1 service (`grid-core`/`grid_api`) and never expose the user's grid API key to the
-browser. Deployment is being reconciled: legacy Vercel config exists, while
-`next.config.mjs` contains Cloudflare/OpenNext dev wiring. Do not assume a deploy target
-until package scripts, dependencies, and provider config agree.
+browser. The current production deployment is Vercel. Cloudflare/OpenNext wiring in
+`next.config.mjs` is incomplete (the package/config is not in the manifest) and must not be
+described as deployable until the build and Worker configuration land together.
 
 ## Ownership
 
-- **`src/app/`** — App Router. `api/` = server route handlers (the BFF); owned in its own
-  AGENTS.md. `dashboard/` = authed pages (parallel routes under `overview/`). `(auth)/` =
-  sign-in. `api-doc/` = hosted OpenAPI reference (Scalar route over `/swagger.json`).
+- **`src/`** — all application source; owned by `src/AGENTS.md`.
+- **`src/app/`** — App Router. `api/` = server route handlers (the BFF); `dashboard/` =
+  authed pages; `(auth)/` = sign-in; `api-doc/` = hosted OpenAPI reference.
 - **`src/lib/`** — shared server infra: Auth.js config and the grid v1 client.
   Owned in its own AGENTS.md.
 - **`src/features/`** — per-route feature UI (one folder per dashboard area). Owned in its
@@ -84,8 +84,8 @@ until package scripts, dependencies, and provider config agree.
   Talking to it from the browser → add/extend an `/api` proxy route.
 - Use the `@/` path alias (maps to `src/`). Validate forms with Zod + React Hook Form.
 - `pnpm install` requires `legacy-peer-deps=true` (already in `.npmrc`); Node >= 20.9, pnpm >= 9.
-- If changing deployment, update this file, README, package scripts/dependencies, and either
-  Vercel or Cloudflare config together. Do not leave both paths half-authoritative.
+- If changing deployment, update this file, README, package scripts/dependencies, and the
+  selected provider config together. Remove incomplete provider imports from the normal build.
 
 ## Verification
 
@@ -96,6 +96,8 @@ until package scripts, dependencies, and provider config agree.
 
 ## Child DOX Index
 
+- [src/AGENTS.md](src/AGENTS.md) — application source map and cross-cutting rules.
+- [src/app/AGENTS.md](src/app/AGENTS.md) — pages, route protection, and public surfaces.
 - [src/app/api/AGENTS.md](src/app/api/AGENTS.md) — server route handlers (the BFF / grid proxy).
 - [src/lib/AGENTS.md](src/lib/AGENTS.md) — auth and the grid v1 client.
 - [src/features/AGENTS.md](src/features/AGENTS.md) — per-route feature UI.

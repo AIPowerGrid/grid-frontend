@@ -1,9 +1,9 @@
 /**
  * Shared client for the Grid v1 API (system-core v2 backend).
  *
- * All dashboard data flows through these endpoints. Stats are aggregated
- * from the on-chain-settled ledger server-side, so what the dashboard shows
- * is exactly what settlement pays.
+ * All dashboard data flows through these endpoints. Worker den is aggregated
+ * from the off-chain completion ledger; the current payout rail records and
+ * verifies the resulting AIPG transfers on Base.
  */
 
 export const GRID_API_BASE =

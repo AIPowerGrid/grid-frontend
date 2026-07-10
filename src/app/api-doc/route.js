@@ -4,7 +4,7 @@ const configuration = {
   spec: {
     url: '/swagger.json'
   },
-  servers: [{ url: 'https://api.aipowergrid.io/v1' }],
+  servers: [{ url: 'https://api.aipowergrid.io' }],
   theme: 'moon'
 };
 
