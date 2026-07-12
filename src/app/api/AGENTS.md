@@ -12,7 +12,9 @@ layer exists so the grid key never reaches the client.
 - `account/`, `account/keys/`, `account/keys/[keyId]/` — account + API-key CRUD; pull the key
   from the Auth.js JWT (`getToken`) and forward to `/v1/account*`.
 - `account/credits/` — the signed-in account's spendable credits (free daily +
-  paid pockets; forwards the session key to `/v1/account/credits`).
+  promotional + paid pockets; forwards the session key to `/v1/account/credits`).
+- `account/identities/wallet/{nonce,link}/` — session-gated proof-of-both wallet
+  linking; the BFF never exposes the Core session key.
 - `account/jobs/` — operator trust view (my workers' jobs + den + proof) via
   `/v1/account/jobs`.
 - `account/payout-preference/` — set payout asset / AIPG slice via the

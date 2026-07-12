@@ -13,7 +13,8 @@ import {
   Briefcase,
   ExternalLink,
   Gift,
-  Coins
+  Coins,
+  Sparkles
 } from 'lucide-react';
 
 interface WorkerRow {
@@ -102,10 +103,24 @@ export function YourGrid() {
         />
       </div>
 
-      {/* Credits — daily free allowance + purchased balance */}
+      {/* Credits — promotional, daily free, and purchased pockets */}
       <Card>
         <CardContent className='flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between'>
           <div className='flex flex-wrap items-center gap-8'>
+            <div>
+              <div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
+                <Sparkles className='h-3.5 w-3.5' /> Promotional
+              </div>
+              <div className='text-2xl font-semibold tabular-nums'>
+                {loading || !credits
+                  ? '—'
+                  : `$${Number(credits.promotional?.remaining_usd ?? 0).toFixed(2)}`}
+              </div>
+              <div className='text-xs text-muted-foreground'>
+                Campaign credit
+              </div>
+            </div>
+
             <div>
               <div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
                 <Gift className='h-3.5 w-3.5' /> Free today
@@ -148,8 +163,7 @@ export function YourGrid() {
 
           {!loading && credits && !credits.charging_enabled && (
             <p className='max-w-[16rem] text-xs text-muted-foreground'>
-              Billing isn’t live yet — you’re on the free grid. Top-ups are
-              coming soon.
+              Metering preview. No credits are charged while billing is off.
             </p>
           )}
         </CardContent>

@@ -18,6 +18,8 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   evidence must be visually distinct; never present either as live routing,
   payout, strike, or slash authority.
 - `settings/` — settings view + username-change section.
+  Linked identities use Core-issued nonces and exact-purpose wallet signatures;
+  the browser never chooses the destination account independently.
 
 ## Local Contracts
 

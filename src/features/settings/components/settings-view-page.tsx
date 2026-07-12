@@ -6,6 +6,7 @@ import PayoutPreferenceSection from './payout-preference-section';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { KeyRound } from 'lucide-react';
+import LinkedIdentitiesSection from './linked-identities-section';
 
 export default function SettingsViewPage() {
   return (
@@ -16,6 +17,8 @@ export default function SettingsViewPage() {
           Manage your account and payout details.
         </p>
       </div>
+
+      <LinkedIdentitiesSection />
 
       <PayoutWalletSection />
 
