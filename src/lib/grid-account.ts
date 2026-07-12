@@ -34,42 +34,44 @@ export async function getSessionToken(req: NextRequest): Promise<any | null> {
 }
 
 /**
- * Resolve a working grid API key for the signed-in user.
+ * Resolve a working short-lived Core token for the signed-in user.
  *
- * Prefer the key already on the session JWT. If it's missing — which happens
+ * Prefer the token already on the session JWT. If it's missing — which happens
  * when sign-in raced the backend, and which the jwt callback can't always fix
  * because server-component auth() can't persist a refreshed cookie — re-derive
- * it on demand from the stable OAuth id via the internal session endpoint
- * (find-or-create, so it's idempotent). This makes the account proxy routes
- * self-sufficient: a valid OAuth session always yields a usable key.
+ * it on demand from the stable provider id through the Console service
+ * exchange. This makes account proxy routes self-sufficient without restoring
+ * the retired shared internal-session token.
  *
  * Returns null only when there's no usable identity at all.
  */
 export async function resolveGridKey(token: any): Promise<string | null> {
-  const existing = token?.gridApiKey as string | undefined;
-  if (existing) return existing;
+  const existing = (token?.gridAccessToken ?? token?.gridApiKey) as
+    | string
+    | undefined;
+  const expiresAt = Number(token?.gridAccessTokenExpiresAt ?? 0);
+  if (existing && (!expiresAt || expiresAt > Date.now() + 60_000))
+    return existing;
 
   const providerId = token?.provider_id as string | undefined;
-  const internalToken = process.env.GRID_INTERNAL_TOKEN;
-  if (!providerId || !internalToken) return null;
+  const serviceKey = process.env.GRID_SERVICE_API_KEY;
+  if (!providerId || !serviceKey) return null;
 
   try {
-    const res = await fetch(`${GRID_API_BASE}/v1/accounts/session`, {
+    const res = await fetch(`${GRID_API_BASE}/v1/auth/service/exchange`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Internal-Token': internalToken
+        apikey: serviceKey
       },
       body: JSON.stringify({
-        oauth_sub: providerId,
-        email: token?.email ?? null,
-        username: token?.name ?? null
+        subject: providerId
       }),
       cache: 'no-store'
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return (data?.api_key as string) ?? null;
+    return (data?.access_token as string) ?? null;
   } catch {
     return null;
   }

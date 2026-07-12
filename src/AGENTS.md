@@ -16,8 +16,9 @@ console pages, same-origin Grid proxies, and shared UI.
 
 ## Local Contracts
 
-- Browser code calls same-origin `/api` routes; Grid session keys and internal
-  tokens stay in server-only Auth.js/JWT and route-handler code.
+- Browser code calls same-origin `/api` routes; the bounded Console service key
+  stays in server env and short-lived Core user tokens stay in the encrypted
+  Auth.js JWT and route-handler code.
 - `proxy.ts` protects `/dashboard/:path*`. Public payout transparency remains
   outside that matcher.
 - There is no application database client in `src`; Grid core owns accounts,

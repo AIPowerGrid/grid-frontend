@@ -4,7 +4,7 @@ import { resolveGridKey, getSessionToken } from '@/lib/grid-account';
 
 /**
  * Grid account profile + key list for the signed-in user. The account's
- * dashboard-session key lives only in the httpOnly session JWT — these
+ * short-lived Core token lives only in the httpOnly session JWT — these
  * proxy routes forward it server-side; it is never sent to the browser.
  */
 export async function GET(req: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
 /**
  * Set the account's payout wallet (where worker earnings are sent). Forwards
- * the session key server-side; the grid format-checks the address.
+ * the recent step-up token server-side; the grid format-checks the address.
  */
 export async function POST(req: NextRequest) {
   const token = await getSessionToken(req);

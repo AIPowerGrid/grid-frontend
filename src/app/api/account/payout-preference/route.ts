@@ -4,7 +4,7 @@ import { resolveGridKey, getSessionToken } from '@/lib/grid-account';
 
 /**
  * Set the worker's payout asset (USDC/USDS/ETH/AIPG) and/or AIPG-slice override.
- * Forwards the httpOnly session key server-side; the grid session-gates this
+ * Forwards the httpOnly Core token server-side; the grid step-up-gates this
  * (a leaked inference key can't change how you're paid).
  */
 export async function POST(req: NextRequest) {

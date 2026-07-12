@@ -5,7 +5,7 @@ import { resolveGridKey, getSessionToken } from '@/lib/grid-account';
 /**
  * The signed-in account's spendable credits — the daily FREE allowance
  * (resets UTC midnight, AIPG-tiered) plus the purchased balance. Forwards the
- * httpOnly dashboard-session key server-side; it is never sent to the browser.
+ * httpOnly Core user token server-side; it is never sent to the browser.
  */
 export async function GET(req: NextRequest) {
   const token = await getSessionToken(req);

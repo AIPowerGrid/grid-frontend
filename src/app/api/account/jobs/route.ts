@@ -5,7 +5,7 @@ import { resolveGridKey, getSessionToken } from '@/lib/grid-account';
 /**
  * The signed-in operator's recent worker jobs — what their workers ran, the den
  * each earned, its output commitment + signed flag, and settlement epoch.
- * Forwards the session key server-side. Scoped to the account's payout wallet.
+ * Forwards the Core user token server-side. Scoped to the canonical account.
  */
 export async function GET(req: NextRequest) {
   const token = await getSessionToken(req);

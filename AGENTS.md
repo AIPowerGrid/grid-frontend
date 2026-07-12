@@ -39,7 +39,7 @@ concrete detail in children. Delete stale notes instead of explaining history.
 The web console for the AI Power Grid: account/login, API-key management, usage + rewards
 stats, worker/model views, and hosted API reference. A Next.js 16 App Router app (React 19,
 TypeScript). It is mostly a **backend-for-frontend**: its `/api` route handlers proxy the
-grid v1 service (`grid-core`/`grid_api`) and never expose the user's grid API key to the
+grid v1 service (`grid-core`/`grid_api`) and never expose Grid credentials to the
 browser. The current production deployment is Vercel. Cloudflare/OpenNext wiring in
 `next.config.mjs` is incomplete (the package/config is not in the manifest) and must not be
 described as deployable until the build and Worker configuration land together.
@@ -63,17 +63,20 @@ described as deployable until the build and Worker configuration land together.
 
 - **Inherit org engineering standards:** `../aipg-documentation/engineering-standards/`
   (core + `git.md` + `typescript.md`). The rules below are grid-frontend specializations.
-- **Secrets stay server-side.** The grid API key lives only in the httpOnly Auth.js JWT.
-  Browser code must call same-origin `/api/...` routes; those routes attach the key and
-  forward to `GRID_API_BASE`. Never ship the key, `GRID_INTERNAL_TOKEN`, or DB creds to a
+- **Secrets stay server-side.** `GRID_SERVICE_API_KEY` is a bounded Console
+  service credential and never enters the Auth.js JWT or browser. The encrypted
+  httpOnly JWT carries only a short-lived, Console-audience Core user token.
+  Browser code calls same-origin `/api/...` routes; those routes attach the user
+  token and forward to `GRID_API_BASE`. Never ship service keys or DB creds to a
   client component.
 - **The grid v1 API is the source of truth** for accounts, keys, stats, workers, models, and
   rewards (`src/lib/grid-api.ts`, default `https://api.aipowergrid.io`). New data needs come
   from grid v1 endpoints, not new local tables. There is no local database layer — route all
   account work through grid v1.
-- **Auth providers:** Google, GitHub, and Web3/SIWE (`src/lib/auth.config.ts`). Login
-  provisions a grid account + session key via grid v1; it soft-fails (key features degrade)
-  rather than blocking sign-in.
+- **Auth providers:** Google, GitHub, and Web3/SIWE (`src/lib/auth.config.ts`).
+  Google and wallet proofs are verified by Core and issue short account-manage
+  tokens. GitHub uses a Console-local app identity and receives inference/read
+  authority only. Core exchange soft-fails rather than blocking frontend login.
 - **`src/proxy.ts`** gates `/dashboard/:path*` — unauthenticated requests redirect to `/`.
 
 ## Work Guidance

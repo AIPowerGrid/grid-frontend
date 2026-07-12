@@ -5,34 +5,61 @@ import GithubProvider from 'next-auth/providers/github';
 import { GRID_API_BASE } from '@/lib/grid-api';
 
 /**
- * Provision a grid account + dashboard-session API key on login.
- * Find-or-create by oauth_sub; the API rotates the session key so old ones
- * die on every fresh login. Soft-fails (returns null) if the grid API or
- * internal token is unavailable — login still works, key features degrade.
+ * Exchange a provider proof or service-local subject for a short-lived Core
+ * user token. The scoped Console service key never leaves this server.
  */
 async function gridSession(body: {
-  oauth_sub?: string;
-  email?: string | null;
-  wallet?: string;
-  username?: string | null;
-}): Promise<{ account_id: string; api_key: string } | null> {
-  const internalToken = process.env.GRID_INTERNAL_TOKEN;
-  if (!internalToken) return null;
+  subject: string;
+  googleIdToken?: string | null;
+}): Promise<{
+  account_id: string;
+  access_token: string;
+  expires_in: number;
+} | null> {
+  const serviceKey = process.env.GRID_SERVICE_API_KEY;
+  if (!serviceKey) return null;
+  const google = Boolean(body.googleIdToken);
   try {
-    const res = await fetch(`${GRID_API_BASE}/v1/accounts/session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Internal-Token': internalToken
-      },
-      body: JSON.stringify(body),
-      cache: 'no-store'
-    });
+    const res = await fetch(
+      `${GRID_API_BASE}${google ? '/v1/auth/google/exchange' : '/v1/auth/service/exchange'}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: serviceKey
+        },
+        body: JSON.stringify(
+          google
+            ? { id_token: body.googleIdToken, app_subject: body.subject }
+            : { subject: body.subject }
+        ),
+        cache: 'no-store'
+      }
+    );
     if (!res.ok) return null;
     return await res.json();
   } catch (e) {
     console.error('gridSession:', e);
     return null;
+  }
+}
+
+async function bindGridSubject(
+  subject: string,
+  userToken: string
+): Promise<boolean> {
+  const serviceKey = process.env.GRID_SERVICE_API_KEY;
+  if (!serviceKey) return false;
+  try {
+    const res = await fetch(`${GRID_API_BASE}/v1/auth/service/bind`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: serviceKey },
+      body: JSON.stringify({ subject, user_token: userToken }),
+      cache: 'no-store'
+    });
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 
@@ -102,7 +129,7 @@ const authConfig = {
 
           // Verify through the grid API: the nonce was minted there
           // (single-use, TTL'd), the signature is recovered server-side,
-          // and the wallet gets a grid account + API key in one step.
+          // and the wallet gets a short-lived Core account token.
           const message = `Sign in to AIPG Grid\n\nNonce: ${nonce}`;
           const res = await fetch(
             `${GRID_API_BASE}/v1/accounts/wallet/verify`,
@@ -115,6 +142,10 @@ const authConfig = {
           );
           if (!res.ok) return null;
           const grid = await res.json();
+          const localSubject = `web3_${grid.wallet}`;
+          if (!(await bindGridSubject(localSubject, grid.access_token))) {
+            return null;
+          }
 
           return {
             id: grid.wallet,
@@ -124,7 +155,9 @@ const authConfig = {
             image: null,
             provider_id: `web3_${grid.wallet}`,
             grid_account_id: grid.account_id,
-            grid_api_key: grid.api_key
+            grid_access_token: grid.access_token,
+            grid_access_token_expires_at:
+              Date.now() + Number(grid.expires_in ?? 900) * 1000
           } as any;
         } catch (error) {
           console.error('Web3 authentication error:', error);
@@ -147,17 +180,20 @@ const authConfig = {
           token.provider_id = `github_${profile.id}`;
         }
 
-        // Provision the grid account (find-or-create + fresh session key).
-        // The key lives only in this httpOnly JWT; server proxy routes
-        // forward it, the browser never sees it.
+        // Exchange the provider proof/subject for a short Core user token.
+        // It lives only in this httpOnly JWT; server proxy routes forward it.
         const grid = await gridSession({
-          oauth_sub: token.provider_id as string,
-          email: (profile as any).email ?? null,
-          username: (profile as any).name ?? null
+          subject: token.provider_id as string,
+          googleIdToken:
+            account.provider === 'google'
+              ? ((account as any).id_token ?? null)
+              : null
         });
         if (grid) {
           (token as any).gridAccountId = grid.account_id;
-          (token as any).gridApiKey = grid.api_key;
+          (token as any).gridAccessToken = grid.access_token;
+          (token as any).gridAccessTokenExpiresAt =
+            Date.now() + Number(grid.expires_in ?? 900) * 1000;
         }
       } else if (user && 'provider_id' in user && user.provider_id) {
         // Handle credential-based providers (like Web3)
@@ -165,27 +201,30 @@ const authConfig = {
         token.provider_id = user.provider_id as string;
         if ((user as any).grid_account_id) {
           (token as any).gridAccountId = (user as any).grid_account_id;
-          (token as any).gridApiKey = (user as any).grid_api_key;
+          (token as any).gridAccessToken = (user as any).grid_access_token;
+          (token as any).gridAccessTokenExpiresAt = (
+            user as any
+          ).grid_access_token_expires_at;
         }
       }
 
-      // Self-heal: if an OAuth session never got a grid key (sign-in raced the
-      // backend, or a first attempt failed), re-provision on the next request
-      // instead of dead-ending the user behind a manual sign-out.
+      // Refresh through the namespaced app identity. This cannot mint account-
+      // management authority; sensitive actions require a fresh Google/SIWE proof.
       if (
         token.provider &&
-        token.provider !== 'web3' &&
         token.provider_id &&
-        !(token as any).gridApiKey
+        (!(token as any).gridAccessToken ||
+          Number((token as any).gridAccessTokenExpiresAt ?? 0) <
+            Date.now() + 60_000)
       ) {
         const grid = await gridSession({
-          oauth_sub: token.provider_id as string,
-          email: (token.email as string) ?? null,
-          username: (token.name as string) ?? null
+          subject: token.provider_id as string
         });
         if (grid) {
           (token as any).gridAccountId = grid.account_id;
-          (token as any).gridApiKey = grid.api_key;
+          (token as any).gridAccessToken = grid.access_token;
+          (token as any).gridAccessTokenExpiresAt =
+            Date.now() + Number(grid.expires_in ?? 900) * 1000;
         }
       }
       return token;
@@ -198,7 +237,7 @@ const authConfig = {
         // Fallback to token.sub
         session.user.id = token.sub;
       }
-      // Account id is safe to expose; the API key never is.
+      // Account id is safe to expose; Core and service tokens never are.
       (session.user as any).gridAccountId =
         ((token as any).gridAccountId as string) ?? null;
       return session;

@@ -7,10 +7,10 @@ provisioning helpers, search parameters, and small shared utilities.
 
 ## Ownership
 
-- `auth.ts` / `auth.config.ts` — Auth.js (NextAuth) setup. Providers: Google, GitHub, and
-  Web3/SIWE. On login, provisions a grid account + session API key via grid v1 and stashes it
-  in the httpOnly JWT (`gridApiKey`); the session only ever exposes `gridAccountId`, never the
-  key. `auth.config.ts` is also imported by `src/proxy.ts` (the route gate).
+- `auth.ts` / `auth.config.ts` — Auth.js setup. Providers: Google, GitHub, and
+  Web3/SIWE. Google/SIWE proof or a namespaced app subject is exchanged for a
+  short-lived Core token stored in the httpOnly JWT (`gridAccessToken`); the
+  session exposes only `gridAccountId`.
 - `grid-api.ts` — `GRID_API_BASE` + `gridFetch` (cached `fetch` wrapper) and v1 response
   types. The single client for the grid v1 service.
 - `grid-account.ts` — server-side Grid account/session provisioning helpers.
@@ -18,8 +18,9 @@ provisioning helpers, search parameters, and small shared utilities.
 
 ## Local Contracts
 
-- The grid API key never leaves the server: it lives in the JWT, is read in route handlers,
-  and is forwarded to the grid. Do not expose it via `session`.
+- The Core user token and Console service key never leave the server. The user
+  token lives in the JWT and route handlers forward it; do not expose either via
+  `session`.
 - `gridSession` / wallet verify **soft-fail** (return `null`): a grid outage degrades key
   features but must not break sign-in.
 - `grid-api.ts` is the only place that constructs grid URLs/headers — route handlers call

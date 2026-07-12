@@ -2,19 +2,20 @@
 
 ## Purpose
 
-Same-origin server endpoints the browser calls. Most are thin proxies that attach the user's
-grid API key and forward to the grid v1 service; a few read aggregated public stats. This
-layer exists so the grid key never reaches the client.
+Same-origin server endpoints the browser calls. Most are thin proxies that
+attach the user's short-lived Core token and forward to grid v1; a few read
+aggregated public stats. This layer keeps user and service credentials out of
+browser JavaScript.
 
 ## Ownership
 
 - `auth/[...nextauth]/` — Auth.js handler. `auth/nonce/` — proxies the grid SIWE nonce.
-- `account/`, `account/keys/`, `account/keys/[keyId]/` — account + API-key CRUD; pull the key
-  from the Auth.js JWT (`getToken`) and forward to `/v1/account*`.
+- `account/`, `account/keys/`, `account/keys/[keyId]/` — account + API-key CRUD;
+  pull the Core user token from the Auth.js JWT and forward to `/v1/account*`.
 - `account/credits/` — the signed-in account's spendable credits (free daily +
-  promotional + paid pockets; forwards the session key to `/v1/account/credits`).
+  promotional + paid pockets; forwards the Core token to `/v1/account/credits`).
 - `account/identities/wallet/{nonce,link}/` — session-gated proof-of-both wallet
-  linking; the BFF never exposes the Core session key.
+  linking; the BFF never exposes the Core user token.
 - `account/jobs/` — operator trust view (my workers' jobs + den + proof) via
   `/v1/account/jobs`.
 - `account/payout-preference/` — set payout asset / AIPG slice via the
@@ -33,9 +34,9 @@ layer exists so the grid key never reaches the client.
 
 ## Local Contracts
 
-- **Key handling:** read the grid key from the JWT via `getToken`, send it to the grid as the
-  `apikey` header (or forward an inbound `Authorization`/`apikey` for the OpenAI routes).
-  Never log it; never return it to the client except the one-time plaintext on key creation.
+- **Credential handling:** read the Core user token from the JWT via `getToken`
+  and send it as the `apikey` header. OpenAI-compatible routes may forward an
+  inbound user credential. Never log or return these credentials.
 - **Forward, don't reshape:** OpenAI/proxy routes pass body and status through unchanged
   (stream SSE with `Cache-Control: no-cache`). Reshape only where a view needs it (see
   `workers/`), and degrade gracefully (return `[]`/`502` on upstream failure) rather than 500.
