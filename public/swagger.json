@@ -283,6 +283,19 @@
         "title": "CreateAccountForm",
         "type": "object"
       },
+      "CreateBridgeForm": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "CreateBridgeForm",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -548,6 +561,109 @@
         "title": "SessionForm",
         "type": "object"
       },
+      "ThreeDRequest": {
+        "additionalProperties": true,
+        "properties": {
+          "guidance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guidance"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "progress_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Token"
+          },
+          "response_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "url",
+            "title": "Response Format"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          },
+          "target_faces": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Faces"
+          },
+          "worker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "title": "ThreeDRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -707,6 +823,29 @@
         "title": "VideoRequest",
         "type": "object"
       },
+      "WalletLinkForm": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "signature",
+          "address"
+        ],
+        "title": "WalletLinkForm",
+        "type": "object"
+      },
       "WalletVerifyForm": {
         "properties": {
           "address": {
@@ -800,6 +939,93 @@
         "summary": "Metrics"
       }
     },
+    "/v1/3d/generations": {
+      "post": {
+        "description": "Image-to-3D mesh generation (grid-native envelope).",
+        "operationId": "create_3d_v1_3d_generations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreeDRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create 3D"
+      }
+    },
     "/v1/account": {
       "get": {
         "operationId": "get_account_v1_account_get",
@@ -862,7 +1088,7 @@
     },
     "/v1/account/credits": {
       "get": {
-        "description": "The account's spendable credits \u2014 what the front ends show as\n'X free today' + '$Y balance' + a top-up prompt.\n\nTwo pockets, one USD unit (micro-USD): the daily FREE allowance (resets UTC\nmidnight, use-it-or-lose-it, tiered by AIPG held) and the purchased balance\n(from on-chain deposits, never expires).\n\nThe free-first draw IS integrated into the live durable reserve path\n(authorize_request / authorize_media hold free-first with reserve/release\nsemantics), gated on GRID_FREE_SPENDABLE_LIVE. `free.active` below reflects\nthat flag: false \u2192 free is display-only and total_spendable = paid only;\ntrue \u2192 charges draw free-first and total_spendable includes it.\ncharging_enabled is the overall live gate (dark = nothing is charged).",
+        "description": "The account's spendable credits \u2014 what the front ends show as\n'X free today' + '$Y balance' + a top-up prompt.\n\nThree pockets, one USD unit (micro-USD): promotional grants (campaign-bound\nand expiring), the daily free allowance (resets UTC midnight, tiered by AIPG\nheld), and purchased balance (from on-chain deposits, never expires).\n\nThe free-first draw IS integrated into the live durable reserve path\n(authorize_request / authorize_media hold free-first with reserve/release\nsemantics), gated on GRID_FREE_SPENDABLE_LIVE. `free.active` below reflects\nthat flag: false \u2192 free is display-only and total_spendable = paid only;\ntrue \u2192 charges draw free-first and total_spendable includes it.\ncharging_enabled is the overall live gate (dark = nothing is charged).",
         "operationId": "get_credits_v1_account_credits_get",
         "parameters": [
           {
@@ -895,6 +1121,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
             }
           }
         ],
@@ -1061,6 +1303,164 @@
           }
         },
         "summary": "Claim Eth Deposit"
+      }
+    },
+    "/v1/account/identities/wallet/link": {
+      "post": {
+        "description": "Attach a wallet to the current canonical account with proof of both sides.\n\nThe session key proves the destination account; the exact-purpose signature\nproves the wallet. If that wallet already owns a separate account, the\ntested merge path conserves balances and retires the source credentials.",
+        "operationId": "link_wallet_v1_account_identities_wallet_link_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletLinkForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Link Wallet"
+      }
+    },
+    "/v1/account/identities/wallet/link/asserted": {
+      "post": {
+        "description": "Link a wallet to a bridge-asserted Google account with proof of both.",
+        "operationId": "link_wallet_from_assertion_v1_account_identities_wallet_link_asserted_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletLinkForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Link Wallet From Assertion"
       }
     },
     "/v1/account/jobs": {
@@ -1593,6 +1993,61 @@
         "summary": "Create Account"
       }
     },
+    "/v1/accounts/bridges": {
+      "post": {
+        "description": "Bootstrap a least-privilege first-party bridge key, returned once.",
+        "operationId": "create_identity_bridge_v1_accounts_bridges_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBridgeForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Identity Bridge"
+      }
+    },
     "/v1/accounts/session": {
       "post": {
         "description": "Dashboard login hook: find-or-create the account, rotate its\ndashboard-session key, return the fresh key.\n\nInternal-token gated (the dashboard verified the user via OAuth/wallet\nitself). Exactly one active \"dashboard-session\" key exists per account \u2014\neach login revokes the previous one, so a leaked old session key is dead\nthe moment the user logs in again.",
@@ -1737,6 +2192,22 @@
               ],
               "title": "Authorization"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
+            }
           }
         ],
         "requestBody": {
@@ -1807,6 +2278,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
             }
           }
         ],
@@ -1917,6 +2404,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
             }
           }
         ],
@@ -2160,6 +2663,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
             }
           }
         ],
@@ -2874,6 +3393,22 @@
                 }
               ],
               "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
             }
           }
         ],
