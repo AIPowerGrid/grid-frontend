@@ -12,7 +12,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   about-grid) with skeleton variants for the parallel routes under `dashboard/overview/`.
 - `api-key/` — API-key view + account-keys management UI.
 - `api-usage/` — usage/metering view. `rewards/` — wallet rewards view.
-- `workers/` — worker list view. `profile/` — profile view + create form (`utils/form-schema.ts`).
+- `workers/` — worker list plus device-enrollment approval. The browser signs
+  only Core's exact delegation message and locally confirms the recovered
+  signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
 - `validators/` — aggregate validator evidence scorecards plus
   assignment/quorum health. Preview evidence and assignment-bound authoritative
   evidence must be visually distinct; never present either as live routing,
@@ -27,6 +29,8 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   components here.
 - Browser data access goes through same-origin `/api` routes (never the grid key or grid base
   URL directly). Server components may use `gridFetch` from `src/lib/grid-api.ts`.
+- Worker enrollment must verify Core's canonical delegation fields and message
+  locally before opening the wallet signature prompt.
 - Forms use React Hook Form + Zod schemas (e.g. `profile/utils/form-schema.ts`).
 
 ## Work Guidance

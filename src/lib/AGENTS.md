@@ -14,6 +14,8 @@ provisioning helpers, search parameters, and small shared utilities.
 - `grid-api.ts` — `GRID_API_BASE` + `gridFetch` (cached `fetch` wrapper) and v1 response
   types. The single client for the grid v1 service.
 - `grid-account.ts` — server-side Grid account/session provisioning helpers.
+- `safe-callback-url.ts` — same-origin post-auth navigation guard. Use it for
+  any browser-controlled Auth.js callback; Web3 sign-in redirects manually.
 - `searchparams.ts` — nuqs URL search-param parsers. `utils.ts` — `cn` + misc helpers.
 
 ## Local Contracts
@@ -26,6 +28,8 @@ provisioning helpers, search parameters, and small shared utilities.
 - `grid-api.ts` is the only place that constructs grid URLs/headers — route handlers call
   through it, not raw `fetch`, for cached reads.
 - There is no local DB layer. New account work goes through Grid v1.
+- Browser-controlled auth callbacks are restricted to `/dashboard` routes;
+  never permit an arbitrary same-origin API or action path as a callback.
 
 ## Work Guidance
 

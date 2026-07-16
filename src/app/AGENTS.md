@@ -8,6 +8,8 @@ public payout transparency, and the hosted API reference.
 ## Ownership
 
 - `(auth)/(signin)/` - Google, GitHub, and wallet sign-in entry page.
+- `dashboard/connect-worker/[enrollmentId]/` - protected, short-lived worker
+  delegation review and payout-wallet approval screen.
 - `dashboard/` - protected account pages: overview, API keys, usage, rewards,
   settings, validators, and workers.
 - `payouts/` - public worker payout transparency and live redacted jobs.

@@ -16,6 +16,9 @@ browser JavaScript.
   promotional + paid pockets; forwards the Core token to `/v1/account/credits`).
 - `account/identities/wallet/{nonce,link}/` — session-gated proof-of-both wallet
   linking; the BFF never exposes the Core user token.
+- `worker-enrollments/[enrollmentId]/` — public safe-intent read plus
+  session-gated prepare/approve proxies. Validate IDs, addresses, and signatures;
+  never proxy manager poll secrets or candidate worker credentials to the browser.
 - `account/jobs/` — operator trust view (my workers' jobs + den + proof) via
   `/v1/account/jobs`.
 - `account/payout-preference/` — set payout asset / AIPG slice via the
@@ -42,6 +45,8 @@ browser JavaScript.
   `workers/`), and degrade gracefully (return `[]`/`502` on upstream failure) rather than 500.
 - **Stats reads** use `gridFetch` (cached, `revalidate`); do not bypass it with raw `fetch`.
 - Do not add direct-database routes. Grid core owns persistence and authorization.
+- Worker-enrollment proxy calls must use the shared bounded timeout and return a
+  no-store `502` when Core is unavailable. Never leave a pairing request hanging.
 
 ## Work Guidance
 

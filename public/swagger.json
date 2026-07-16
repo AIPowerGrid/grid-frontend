@@ -1,6 +1,22 @@
 {
   "components": {
     "schemas": {
+      "ApproveEnrollment": {
+        "additionalProperties": false,
+        "properties": {
+          "signature": {
+            "format": "password",
+            "title": "Signature",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "signature"
+        ],
+        "title": "ApproveEnrollment",
+        "type": "object"
+      },
       "AttestationForm": {
         "additionalProperties": false,
         "properties": {
@@ -25,6 +41,109 @@
           "payload"
         ],
         "title": "AttestationForm",
+        "type": "object"
+      },
+      "AudioRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "inference_steps": {
+            "default": 8,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Inference Steps",
+            "type": "integer"
+          },
+          "lyrics": {
+            "default": "",
+            "maxLength": 20000,
+            "title": "Lyrics",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "progress_token": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Token"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "seconds": {
+            "default": 30.0,
+            "maximum": 300.0,
+            "minimum": 10.0,
+            "title": "Seconds",
+            "type": "number"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "worker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "title": "AudioRequest",
+        "type": "object"
+      },
+      "BindServiceIdentityForm": {
+        "properties": {
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "user_token": {
+            "title": "User Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "user_token"
+        ],
+        "title": "BindServiceIdentityForm",
         "type": "object"
       },
       "ChatCompletionRequest": {
@@ -285,15 +404,137 @@
       },
       "CreateBridgeForm": {
         "properties": {
+          "allowed_providers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Providers",
+            "type": "array"
+          },
+          "daily_micro": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Micro"
+          },
+          "google_audiences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Google Audiences",
+            "type": "array"
+          },
           "label": {
             "title": "Label",
             "type": "string"
+          },
+          "per_request_micro": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Request Micro"
+          },
+          "service_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Id"
           }
         },
         "required": [
           "label"
         ],
         "title": "CreateBridgeForm",
+        "type": "object"
+      },
+      "CreateEnrollment": {
+        "additionalProperties": false,
+        "properties": {
+          "api_key": {
+            "format": "password",
+            "title": "Api Key",
+            "type": "string",
+            "writeOnly": true
+          },
+          "poll_token_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Poll Token Hash",
+            "type": "string"
+          },
+          "profile_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "valid_days": {
+            "default": 90,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Valid Days",
+            "type": "integer"
+          },
+          "worker_name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Worker Name",
+            "type": "string"
+          },
+          "worker_signer": {
+            "maxLength": 42,
+            "minLength": 42,
+            "title": "Worker Signer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "worker_signer",
+          "worker_name",
+          "profile_id",
+          "api_key",
+          "poll_token_hash"
+        ],
+        "title": "CreateEnrollment",
+        "type": "object"
+      },
+      "GoogleExchangeForm": {
+        "properties": {
+          "app_subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Subject"
+          },
+          "id_token": {
+            "title": "Id Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id_token"
+        ],
+        "title": "GoogleExchangeForm",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -497,6 +738,56 @@
           }
         },
         "title": "PayoutWalletForm",
+        "type": "object"
+      },
+      "PollEnrollment": {
+        "additionalProperties": false,
+        "properties": {
+          "poll_token": {
+            "format": "password",
+            "title": "Poll Token",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "poll_token"
+        ],
+        "title": "PollEnrollment",
+        "type": "object"
+      },
+      "PrepareEnrollment": {
+        "additionalProperties": false,
+        "properties": {
+          "payout_wallet": {
+            "maxLength": 42,
+            "minLength": 42,
+            "title": "Payout Wallet",
+            "type": "string"
+          },
+          "replace_payout_wallet": {
+            "default": false,
+            "title": "Replace Payout Wallet",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "payout_wallet"
+        ],
+        "title": "PrepareEnrollment",
+        "type": "object"
+      },
+      "ServiceExchangeForm": {
+        "properties": {
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject"
+        ],
+        "title": "ServiceExchangeForm",
         "type": "object"
       },
       "SessionForm": {
@@ -991,6 +1282,22 @@
               ],
               "title": "X-Grid-User-Assertion"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
+            }
           }
         ],
         "requestBody": {
@@ -1137,6 +1444,22 @@
                 }
               ],
               "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
             }
           }
         ],
@@ -1378,7 +1701,7 @@
     },
     "/v1/account/identities/wallet/link/asserted": {
       "post": {
-        "description": "Link a wallet to a bridge-asserted Google account with proof of both.",
+        "description": "Link a wallet to a delegated user account with proof of both.",
         "operationId": "link_wallet_from_assertion_v1_account_identities_wallet_link_asserted_post",
         "parameters": [
           {
@@ -1427,6 +1750,22 @@
                 }
               ],
               "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
             }
           }
         ],
@@ -1995,7 +2334,7 @@
     },
     "/v1/accounts/bridges": {
       "post": {
-        "description": "Bootstrap a least-privilege first-party bridge key, returned once.",
+        "description": "Bootstrap a bounded service account. Disable after provisioning.",
         "operationId": "create_identity_bridge_v1_accounts_bridges_post",
         "parameters": [
           {
@@ -2121,7 +2460,7 @@
     },
     "/v1/accounts/wallet/verify": {
       "post": {
-        "description": "Verify a SIWE signature; create the account if new; issue an API key.\n\nThe recovered signer is the identity \u2014 the claimed address is only\ncross-checked. Each successful verify issues a fresh key (label\n\"wallet-login\"); manage/revoke via /v1/account/keys.",
+        "description": "Verify a wallet signature and issue a short-lived Core user token.",
         "operationId": "wallet_verify_v1_accounts_wallet_verify_post",
         "requestBody": {
           "content": {
@@ -2154,6 +2493,322 @@
           }
         },
         "summary": "Wallet Verify"
+      }
+    },
+    "/v1/audio/generations": {
+      "post": {
+        "description": "Generate one WAV using a Core-governed local ACE-Step recipe.",
+        "operationId": "create_audio_v1_audio_generations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-assertion",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Audio"
+      }
+    },
+    "/v1/auth/google/exchange": {
+      "post": {
+        "description": "Verify Google with Google, then issue a short Core account token.",
+        "operationId": "exchange_google_identity_v1_auth_google_exchange_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleExchangeForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exchange Google Identity"
+      }
+    },
+    "/v1/auth/service/bind": {
+      "post": {
+        "description": "Bind a service-local subject after fresh Core Google/SIWE proof.",
+        "operationId": "bind_service_identity_v1_auth_service_bind_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindServiceIdentityForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Bind Service Identity"
+      }
+    },
+    "/v1/auth/service/exchange": {
+      "post": {
+        "description": "Exchange one service-local authenticated subject for a short user token.",
+        "operationId": "exchange_service_identity_v1_auth_service_exchange_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceExchangeForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exchange Service Identity"
       }
     },
     "/v1/chat/completions": {
@@ -2207,6 +2862,22 @@
                 }
               ],
               "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
             }
           }
         ],
@@ -2294,6 +2965,22 @@
                 }
               ],
               "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
             }
           }
         ],
@@ -2420,6 +3107,22 @@
                 }
               ],
               "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
             }
           }
         ],
@@ -2551,6 +3254,76 @@
         "summary": "Get Model Params"
       }
     },
+    "/v1/models/{model_id}/recipe": {
+      "get": {
+        "description": "Worker preflight: the canary-resolved recipe(s) for a media model, plus the\nnode types + model files a worker must have to run it. A worker fetches this at\nstartup, checks nodes/files against its ComfyUI /object_info, then smoke-runs the\n`spec` \u2014 advertising the model only if it produces a real output. Authed (workers\nhold a grid key); recipe graphs aren't secret but we don't serve them anonymously.",
+        "operationId": "get_model_recipe_v1_models__model_id__recipe_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "model_id",
+            "required": true,
+            "schema": {
+              "title": "Model Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Model Recipe"
+      }
+    },
     "/v1/payouts/public": {
       "get": {
         "description": "PUBLIC, no-auth worker-payout transparency. Aggregate only \u2014 NO account\nIDs / PII; just on-chain payout wallets + tx hashes (already public on Base).\nFeeds the /transparency page so anyone can verify what's been paid to workers.",
@@ -2679,6 +3452,22 @@
                 }
               ],
               "title": "X-Grid-User-Assertion"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
             }
           }
         ],
@@ -3410,6 +4199,22 @@
               ],
               "title": "X-Grid-User-Assertion"
             }
+          },
+          {
+            "in": "header",
+            "name": "x-grid-user-token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Grid-User-Token"
+            }
           }
         ],
         "requestBody": {
@@ -3498,6 +4303,331 @@
           }
         },
         "summary": "List Workers"
+      }
+    },
+    "/v1/workers/enrollments": {
+      "post": {
+        "operationId": "create_worker_enrollment_v1_workers_enrollments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Worker Enrollment"
+      }
+    },
+    "/v1/workers/enrollments/{enrollment_id}": {
+      "get": {
+        "operationId": "get_worker_enrollment_v1_workers_enrollments__enrollment_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enrollment_id",
+            "required": true,
+            "schema": {
+              "title": "Enrollment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Worker Enrollment"
+      }
+    },
+    "/v1/workers/enrollments/{enrollment_id}/ack": {
+      "post": {
+        "operationId": "acknowledge_worker_enrollment_v1_workers_enrollments__enrollment_id__ack_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enrollment_id",
+            "required": true,
+            "schema": {
+              "title": "Enrollment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge Worker Enrollment"
+      }
+    },
+    "/v1/workers/enrollments/{enrollment_id}/approve": {
+      "post": {
+        "operationId": "approve_worker_enrollment_v1_workers_enrollments__enrollment_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enrollment_id",
+            "required": true,
+            "schema": {
+              "title": "Enrollment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Worker Enrollment"
+      }
+    },
+    "/v1/workers/enrollments/{enrollment_id}/poll": {
+      "post": {
+        "operationId": "poll_worker_enrollment_v1_workers_enrollments__enrollment_id__poll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enrollment_id",
+            "required": true,
+            "schema": {
+              "title": "Enrollment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Poll Worker Enrollment"
+      }
+    },
+    "/v1/workers/enrollments/{enrollment_id}/prepare": {
+      "post": {
+        "operationId": "prepare_worker_enrollment_v1_workers_enrollments__enrollment_id__prepare_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "enrollment_id",
+            "required": true,
+            "schema": {
+              "title": "Enrollment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepare Worker Enrollment"
       }
     }
   }

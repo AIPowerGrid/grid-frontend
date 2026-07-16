@@ -4,19 +4,24 @@ import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
+import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({
+  returnTo
+}: {
+  returnTo?: string;
+} = {}) {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl');
+  const callbackUrl = safeCallbackUrl(
+    returnTo ?? searchParams.get('callbackUrl')
+  );
 
   return (
     <Button
       className='w-full'
       variant='outline'
       type='button'
-      onClick={() =>
-        signIn('google', { callbackUrl: callbackUrl ?? '/dashboard' })
-      }
+      onClick={() => signIn('google', { callbackUrl })}
     >
       <Icons.google className='mr-2 h-4 w-4' />
       Continue with Google

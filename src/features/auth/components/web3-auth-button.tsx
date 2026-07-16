@@ -6,10 +6,17 @@ import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { ethers } from 'ethers';
+import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
-export default function Web3AuthButton() {
+export default function Web3AuthButton({
+  returnTo
+}: {
+  returnTo?: string;
+} = {}) {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl');
+  const callbackUrl = safeCallbackUrl(
+    returnTo ?? searchParams.get('callbackUrl')
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,7 +98,7 @@ export default function Web3AuthButton() {
         signature,
         nonce,
         redirect: false,
-        callbackUrl: callbackUrl ?? '/dashboard'
+        callbackUrl
       });
 
       if (result?.error) {
@@ -100,7 +107,7 @@ export default function Web3AuthButton() {
 
       // Redirect manually after successful sign in
       if (result?.ok) {
-        window.location.href = callbackUrl ?? '/dashboard';
+        window.location.href = callbackUrl;
       }
     } catch (err) {
       console.error('Web3 authentication error:', err);
