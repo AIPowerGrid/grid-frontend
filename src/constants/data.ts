@@ -19,6 +19,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Credits & Funding',
+    url: '/dashboard/funding',
+    icon: 'funding',
+    shortcut: ['c', 'c'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Grid Workers',
     url: '/dashboard/workers',
     icon: 'user2',

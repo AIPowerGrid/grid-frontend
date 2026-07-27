@@ -16,6 +16,8 @@ browser JavaScript.
   pull the Core user token from the Auth.js JWT and forward to `/v1/account*`.
 - `account/credits/` — the signed-in account's spendable credits (free daily +
   promotional + paid pockets; forwards the Core token to `/v1/account/credits`).
+- `account/deposits/` — signed-in Base funding config, immutable receipts, and
+  USDC/AIPG/ETH claim forwarding. The browser never receives the Core token.
 - `account/identities/wallet/{nonce,link}/` — session-gated proof-of-both wallet
   linking; the BFF never exposes the Core user token.
 - `worker-enrollments/[enrollmentId]/` — public safe-intent read plus
