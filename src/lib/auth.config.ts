@@ -111,13 +111,18 @@ const authConfig = {
         nonce: {
           label: 'Nonce',
           type: 'text'
+        },
+        message: {
+          label: 'SIWE Message',
+          type: 'text'
         }
       },
       async authorize(credentials) {
         if (
           !credentials?.address ||
           !credentials?.signature ||
-          !credentials?.nonce
+          !credentials?.nonce ||
+          !credentials?.message
         ) {
           return null;
         }
@@ -126,11 +131,11 @@ const authConfig = {
           const address = credentials.address as string;
           const signature = credentials.signature as string;
           const nonce = credentials.nonce as string;
+          const message = credentials.message as string;
+          if (!message.includes(`\nNonce: ${nonce}\n`)) return null;
 
-          // Verify through the grid API: the nonce was minted there
-          // (single-use, TTL'd), the signature is recovered server-side,
-          // and the wallet gets a short-lived Core account token.
-          const message = `Sign in to AIPG Grid\n\nNonce: ${nonce}`;
+          // Core compares the exact stored EIP-4361 message, atomically consumes
+          // its nonce, recovers the signer, and issues a short account token.
           const res = await fetch(
             `${GRID_API_BASE}/v1/accounts/wallet/verify`,
             {
