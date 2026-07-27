@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider, Contract, ethers } from 'ethers';
 import {
@@ -22,6 +21,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,8 +36,11 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Eip1193Provider, WalletProviderOption } from './wallet-providers';
+import { watchWalletProviders } from './wallet-providers';
 
 const ERC20_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
   'function transfer(address to, uint256 amount) returns (bool)'
 ];
 const BASE_CHAIN_HEX = '0x2105';
@@ -55,6 +64,7 @@ interface FundingAsset {
 interface FundingConfig {
   chain: { id: number; name: string };
   linked_wallet: string | null;
+  linked_wallets?: string[];
   terms: {
     unit: string;
     credits_transferable: boolean;
@@ -62,6 +72,12 @@ interface FundingConfig {
     refund_policy: string;
   };
   assets: FundingAsset[];
+}
+
+interface PaymentWalletStatus {
+  chainId: number;
+  nativeBalance: bigint;
+  assetBalance: bigint | null;
 }
 
 interface DepositReceipt {
@@ -99,15 +115,7 @@ function formatUsd(value: number) {
   }).format(value);
 }
 
-function ethereumProvider() {
-  const provider = (window as Window & { ethereum?: any }).ethereum;
-  if (!provider?.request) {
-    throw new Error('Install or open an Ethereum wallet to continue.');
-  }
-  return provider;
-}
-
-async function switchToBase(provider: any) {
+async function switchToBase(provider: Eip1193Provider) {
   try {
     await provider.request({
       method: 'wallet_switchEthereumChain',
@@ -141,6 +149,17 @@ export default function FundingView() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingHash, setPendingHash] = useState<string | null>(null);
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
+  const [walletProviders, setWalletProviders] = useState<
+    WalletProviderOption[]
+  >([]);
+  const [paymentProvider, setPaymentProvider] =
+    useState<WalletProviderOption | null>(null);
+  const [paymentWallet, setPaymentWallet] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] =
+    useState<PaymentWalletStatus | null>(null);
+  const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
+  const [checkingWallet, setCheckingWallet] = useState(false);
 
   const refresh = useCallback(async () => {
     const [configResponse, creditsResponse, historyResponse] =
@@ -169,6 +188,8 @@ export default function FundingView() {
       .finally(() => setLoading(false));
   }, [refresh]);
 
+  useEffect(() => watchWalletProviders(setWalletProviders), []);
+
   const assets = config?.assets ?? [];
   const selected =
     assets.find((candidate) => candidate.asset === assetName) ?? null;
@@ -185,6 +206,151 @@ export default function FundingView() {
       return null;
     }
   }, [amount, selected]);
+
+  const verifiedWallets = useMemo(() => {
+    const values = config?.linked_wallets?.length
+      ? config.linked_wallets
+      : config?.linked_wallet
+        ? [config.linked_wallet]
+        : [];
+    return values.map((wallet) => wallet.toLowerCase());
+  }, [config]);
+
+  const parsedAmount = useMemo(() => {
+    if (!selected || !amount) return null;
+    try {
+      const raw = ethers.parseUnits(amount, selected.decimals);
+      return raw > BigInt(0) ? raw : null;
+    } catch {
+      return null;
+    }
+  }, [amount, selected]);
+
+  const walletProblem = useMemo(() => {
+    if (!paymentWallet || !paymentProvider) return 'Connect a payment wallet.';
+    if (!verifiedWallets.includes(paymentWallet.toLowerCase())) {
+      return 'Verify this wallet before funding the account.';
+    }
+    if (!paymentStatus) return 'Checking wallet balances.';
+    if (paymentStatus.chainId !== (config?.chain.id ?? 8453)) {
+      return 'Switch the payment wallet to Base.';
+    }
+    if (!parsedAmount) return 'Enter a valid amount.';
+    if (
+      selected?.asset !== 'ETH' &&
+      paymentStatus.assetBalance !== null &&
+      paymentStatus.assetBalance < parsedAmount
+    ) {
+      return `Not enough ${selected?.asset ?? 'tokens'} in this wallet.`;
+    }
+    if (paymentStatus.nativeBalance <= BigInt(0)) {
+      return 'This wallet needs ETH on Base for gas.';
+    }
+    return null;
+  }, [
+    config?.chain.id,
+    parsedAmount,
+    paymentProvider,
+    paymentStatus,
+    paymentWallet,
+    selected,
+    verifiedWallets
+  ]);
+
+  const readPaymentWallet = useCallback(
+    async (
+      option: WalletProviderOption,
+      address: string,
+      asset: FundingAsset | null
+    ) => {
+      setCheckingWallet(true);
+      try {
+        const provider = new BrowserProvider(option.provider);
+        const [network, nativeBalance] = await Promise.all([
+          provider.getNetwork(),
+          provider.getBalance(address)
+        ]);
+        let assetBalance: bigint | null = null;
+        if (asset?.asset !== 'ETH' && asset?.token_address) {
+          assetBalance = await new Contract(
+            asset.token_address,
+            ERC20_ABI,
+            provider
+          ).balanceOf(address);
+        }
+        setPaymentStatus({
+          chainId: Number(network.chainId),
+          nativeBalance,
+          assetBalance
+        });
+      } finally {
+        setCheckingWallet(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!paymentProvider || !paymentWallet) {
+      setPaymentStatus(null);
+      return;
+    }
+    void readPaymentWallet(paymentProvider, paymentWallet, selected).catch(
+      (reason) => {
+        setPaymentStatus(null);
+        setError(errorMessage(reason, 'Could not read wallet balances.'));
+      }
+    );
+  }, [paymentProvider, paymentWallet, readPaymentWallet, selected]);
+
+  async function verifyWallet(
+    option: WalletProviderOption,
+    signer: ethers.Signer,
+    address: string
+  ) {
+    if (verifiedWallets.includes(address.toLowerCase())) return;
+    const nonceResponse = await fetch('/api/account/identities/wallet/nonce', {
+      method: 'POST'
+    });
+    if (!nonceResponse.ok) throw new Error('Could not create wallet proof.');
+    const challenge = await nonceResponse.json();
+    const message = `Link wallet to AIPG Grid account ${challenge.account_id}\n\nNonce: ${challenge.nonce}`;
+    const signature = await signer.signMessage(message);
+    const response = await fetch('/api/account/identities/wallet/link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, signature, address })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(
+        result.detail ?? result.error ?? 'Wallet verification failed.'
+      );
+    }
+    await refresh();
+    setPaymentProvider(option);
+  }
+
+  async function connectPaymentWallet(option: WalletProviderOption) {
+    setConnectingWallet(option.id);
+    setError(null);
+    try {
+      await option.provider.request({ method: 'eth_requestAccounts' });
+      await switchToBase(option.provider);
+      const provider = new BrowserProvider(option.provider);
+      const signer = await provider.getSigner();
+      const address = (await signer.getAddress()).toLowerCase();
+      await verifyWallet(option, signer, address);
+      setPaymentProvider(option);
+      setPaymentWallet(address);
+      setWalletDialogOpen(false);
+      await readPaymentWallet(option, address, selected);
+    } catch (reason) {
+      setError(errorMessage(reason, 'Could not connect the payment wallet.'));
+    } finally {
+      setConnectingWallet(null);
+    }
+  }
 
   async function claim(asset: string, txHash: string) {
     for (let attempt = 0; attempt < 20; attempt += 1) {
@@ -209,8 +375,8 @@ export default function FundingView() {
 
   async function fund() {
     if (!selected?.enabled || !selected.treasury) return;
-    if (!config?.linked_wallet) {
-      setError('Link a wallet to this Grid account before funding it.');
+    if (!paymentProvider || !paymentWallet) {
+      setError('Connect a payment wallet before funding this account.');
       return;
     }
     setSubmitting(true);
@@ -218,16 +384,15 @@ export default function FundingView() {
     setSuccess(null);
     setPendingHash(null);
     try {
-      const injected = ethereumProvider();
-      await injected.request({ method: 'eth_requestAccounts' });
-      await switchToBase(injected);
-      const provider = new BrowserProvider(injected);
+      await switchToBase(paymentProvider.provider);
+      const provider = new BrowserProvider(paymentProvider.provider);
       const signer = await provider.getSigner();
       const signerAddress = (await signer.getAddress()).toLowerCase();
-      if (signerAddress !== config.linked_wallet.toLowerCase()) {
-        throw new Error(
-          `Use the linked wallet ${shortAddress(config.linked_wallet)} to fund this account.`
-        );
+      if (signerAddress !== paymentWallet.toLowerCase()) {
+        throw new Error('The active wallet account changed. Select it again.');
+      }
+      if (!verifiedWallets.includes(signerAddress)) {
+        throw new Error('Verify this payment wallet before funding.');
       }
       const raw = ethers.parseUnits(amount, selected.decimals);
       if (raw <= BigInt(0))
@@ -256,17 +421,35 @@ export default function FundingView() {
         }
       }
 
-      const transaction =
-        selected.asset === 'ETH'
-          ? await signer.sendTransaction({
-              to: selected.treasury,
-              value: raw
-            })
-          : await new Contract(
-              selected.token_address!,
-              ERC20_ABI,
-              signer
-            ).transfer(selected.treasury, raw);
+      let transaction;
+      if (selected.asset === 'ETH') {
+        const balance = await provider.getBalance(signerAddress);
+        if (balance <= raw) {
+          throw new Error('Not enough ETH for this payment plus gas.');
+        }
+        transaction = await signer.sendTransaction({
+          to: selected.treasury,
+          value: raw
+        });
+      } else {
+        const token = new Contract(selected.token_address!, ERC20_ABI, signer);
+        const [tokenBalance, nativeBalance] = await Promise.all([
+          token.balanceOf(signerAddress) as Promise<bigint>,
+          provider.getBalance(signerAddress)
+        ]);
+        if (tokenBalance < raw) {
+          throw new Error(
+            `This wallet has ${ethers.formatUnits(tokenBalance, selected.decimals)} ${selected.asset}; ${amount} is required.`
+          );
+        }
+        const gas = await token.transfer.estimateGas(selected.treasury, raw);
+        const fees = await provider.getFeeData();
+        const gasPrice = fees.maxFeePerGas ?? fees.gasPrice;
+        if (gasPrice && nativeBalance < gas * gasPrice) {
+          throw new Error('Not enough ETH on Base to pay the network fee.');
+        }
+        transaction = await token.transfer(selected.treasury, raw);
+      }
       setPendingHash(transaction.hash);
       await transaction.wait(1);
       const receipt = await claim(selected.asset, transaction.hash);
@@ -275,6 +458,7 @@ export default function FundingView() {
       );
       setAmount('');
       await refresh();
+      await readPaymentWallet(paymentProvider, paymentWallet, selected);
     } catch (reason) {
       setError(errorMessage(reason, 'Funding failed.'));
     } finally {
@@ -314,10 +498,14 @@ export default function FundingView() {
           <Wallet className='h-4 w-4' />
           <AlertTitle>Link a Base wallet</AlertTitle>
           <AlertDescription className='flex flex-wrap items-center gap-3'>
-            Funding transactions must come from the wallet linked to this
-            account.
-            <Button asChild size='sm' variant='outline'>
-              <Link href='/dashboard/settings'>Open settings</Link>
+            Verify a wallet before funding this account.
+            <Button
+              type='button'
+              size='sm'
+              variant='outline'
+              onClick={() => setWalletDialogOpen(true)}
+            >
+              Connect wallet
             </Button>
           </AlertDescription>
         </Alert>
@@ -377,6 +565,46 @@ export default function FundingView() {
           <CardContent className='space-y-5'>
             {selected?.enabled ? (
               <>
+                <div className='flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-center sm:justify-between'>
+                  <div>
+                    <p className='text-sm font-medium'>Pay from</p>
+                    {paymentWallet ? (
+                      <div className='mt-1 space-y-1'>
+                        <p className='font-mono text-xs text-muted-foreground'>
+                          {shortAddress(paymentWallet)}
+                        </p>
+                        {paymentStatus && selected && (
+                          <p className='text-xs text-muted-foreground'>
+                            {selected.asset === 'ETH'
+                              ? `${Number(ethers.formatEther(paymentStatus.nativeBalance)).toLocaleString(undefined, { maximumFractionDigits: 6 })} ETH`
+                              : `${Number(ethers.formatUnits(paymentStatus.assetBalance ?? BigInt(0), selected.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${selected.asset}`}
+                            {' · '}
+                            {Number(
+                              ethers.formatEther(paymentStatus.nativeBalance)
+                            ).toLocaleString(undefined, {
+                              maximumFractionDigits: 6
+                            })}{' '}
+                            ETH for gas
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className='mt-1 text-xs text-muted-foreground'>
+                        No payment wallet connected
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    className='gap-2'
+                    onClick={() => setWalletDialogOpen(true)}
+                  >
+                    <Wallet className='h-4 w-4' />
+                    {paymentWallet ? 'Change wallet' : 'Connect wallet'}
+                  </Button>
+                </div>
+
                 <div className='space-y-2'>
                   <Label htmlFor='funding-amount'>Amount</Label>
                   <div className='relative'>
@@ -455,7 +683,12 @@ export default function FundingView() {
                 <Button
                   type='button'
                   className='w-full gap-2'
-                  disabled={submitting || !amount || !config?.linked_wallet}
+                  disabled={
+                    submitting ||
+                    checkingWallet ||
+                    !amount ||
+                    walletProblem !== null
+                  }
                   onClick={fund}
                 >
                   {submitting ? (
@@ -469,6 +702,11 @@ export default function FundingView() {
                       : 'Open wallet'
                     : `Pay with ${selected.asset}`}
                 </Button>
+                {!submitting && walletProblem && (
+                  <p className='text-center text-xs text-muted-foreground'>
+                    {walletProblem}
+                  </p>
+                )}
                 {pendingHash && (
                   <a
                     href={`${BASESCAN}/tx/${pendingHash}`}
@@ -502,17 +740,12 @@ export default function FundingView() {
 
         <aside className='space-y-4 border-l-0 lg:border-l lg:pl-6'>
           <div>
-            <p className='text-sm font-medium'>Linked wallet</p>
-            {config?.linked_wallet ? (
-              <a
-                href={`${BASESCAN}/address/${config.linked_wallet}`}
-                target='_blank'
-                rel='noreferrer'
-                className='mt-1 inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground hover:underline'
-              >
-                {shortAddress(config.linked_wallet)}
-                <ExternalLink className='h-3 w-3' />
-              </a>
+            <p className='text-sm font-medium'>Verified wallets</p>
+            {verifiedWallets.length ? (
+              <p className='mt-1 text-xs text-muted-foreground'>
+                {verifiedWallets.length}{' '}
+                {verifiedWallets.length === 1 ? 'wallet' : 'wallets'} available
+              </p>
             ) : (
               <p className='mt-1 text-xs text-muted-foreground'>Not linked</p>
             )}
@@ -612,6 +845,47 @@ export default function FundingView() {
           </Table>
         </div>
       </section>
+
+      <Dialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>Select payment wallet</DialogTitle>
+            <DialogDescription>
+              The wallet signs once to join this Grid account, then pays
+              directly on Base.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-2'>
+            {walletProviders.length ? (
+              walletProviders.map((option) => (
+                <Button
+                  key={option.id}
+                  type='button'
+                  variant='outline'
+                  className='h-12 w-full justify-start gap-3'
+                  disabled={connectingWallet !== null}
+                  onClick={() => void connectPaymentWallet(option)}
+                >
+                  {connectingWallet === option.id ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <Wallet className='h-4 w-4' />
+                  )}
+                  {option.name}
+                </Button>
+              ))
+            ) : (
+              <p className='py-6 text-center text-sm text-muted-foreground'>
+                No browser wallet detected.
+              </p>
+            )}
+          </div>
+          <p className='text-xs text-muted-foreground'>
+            A wallet already attached to another Grid account is merged only
+            after this session and the wallet signature are both verified.
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

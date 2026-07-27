@@ -12,8 +12,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   about-grid) with skeleton variants for the parallel routes under `dashboard/overview/`.
 - `api-key/` — API-key view + account-keys management UI.
 - `api-usage/` — usage/metering view. `rewards/` — wallet rewards view.
-- `funding/` — Base wallet funding, guarded asset availability, automatic
-  on-chain claim, and immutable deposit history.
+- `funding/` — explicit EIP-6963 payment-wallet selection, verified account
+  wallet binding, Base balance/gas preflight, guarded asset availability,
+  automatic on-chain claim, and immutable deposit history.
 - `workers/` — worker list plus device-enrollment approval. The browser signs
   only Core's exact delegation message and locally confirms the recovered
   signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
@@ -34,6 +35,10 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 - Worker enrollment must verify Core's canonical delegation fields and message
   locally before opening the wallet signature prompt.
 - Forms use React Hook Form + Zod schemas (e.g. `profile/utils/form-schema.ts`).
+- Funding may use any wallet that Core has verified on the canonical account.
+  Browser balance checks improve UX only; Core receipt verification remains
+  authoritative for sender, token, treasury, amount, confirmations, and
+  idempotency.
 
 ## Work Guidance
 
