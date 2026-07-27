@@ -9,7 +9,9 @@ browser JavaScript.
 
 ## Ownership
 
-- `auth/[...nextauth]/` — Auth.js handler. `auth/nonce/` — proxies the grid SIWE nonce.
+- `auth/[...nextauth]/` — Auth.js handler. `auth/nonce/` — requests a complete
+  origin/address/Base-bound EIP-4361 challenge from Core; the browser signs the
+  returned message verbatim.
 - `account/`, `account/keys/`, `account/keys/[keyId]/` — account + API-key CRUD;
   pull the Core user token from the Auth.js JWT and forward to `/v1/account*`.
 - `account/credits/` — the signed-in account's spendable credits (free daily +

@@ -1114,6 +1114,38 @@
         "title": "VideoRequest",
         "type": "object"
       },
+      "WalletChallengeForm": {
+        "properties": {
+          "address": {
+            "title": "Address",
+            "type": "string"
+          },
+          "chain_id": {
+            "default": 8453,
+            "title": "Chain Id",
+            "type": "integer"
+          },
+          "domain": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Domain",
+            "type": "string"
+          },
+          "uri": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "domain",
+          "uri"
+        ],
+        "title": "WalletChallengeForm",
+        "type": "object"
+      },
       "WalletLinkForm": {
         "properties": {
           "address": {
@@ -2440,6 +2472,43 @@
           }
         },
         "summary": "Account Session"
+      }
+    },
+    "/v1/accounts/wallet/challenge": {
+      "post": {
+        "description": "Issue a domain-, address-, URI-, chain-, and time-bound EIP-4361 message.",
+        "operationId": "wallet_challenge_v1_accounts_wallet_challenge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletChallengeForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Wallet Challenge"
       }
     },
     "/v1/accounts/wallet/nonce": {

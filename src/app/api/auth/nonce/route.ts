@@ -1,21 +1,38 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { GRID_API_BASE } from '@/lib/grid-api';
 
 /**
- * Proxy the grid API's SIWE nonce. Nonces are minted and stored server-side
- * by the API (single-use, 5-min TTL), so a signature can never be replayed —
- * the old local randomBytes nonce was never stored or checked.
+ * Ask Core for the complete EIP-4361 message. Core binds it to this frontend
+ * origin, the selected wallet, Base, and a single-use five-minute nonce.
  */
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    const res = await fetch(`${GRID_API_BASE}/v1/accounts/wallet/nonce`, {
+    const body = await request.json();
+    if (typeof body?.address !== 'string') {
+      return NextResponse.json(
+        { error: 'Wallet address required' },
+        { status: 400 }
+      );
+    }
+    const origin = request.nextUrl.origin;
+    const res = await fetch(`${GRID_API_BASE}/v1/accounts/wallet/challenge`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address: body.address,
+        domain: request.nextUrl.host,
+        uri: `${origin}/`,
+        chain_id: 8453
+      }),
       cache: 'no-store'
     });
-    if (!res.ok) throw new Error(`nonce upstream ${res.status}`);
-    return NextResponse.json(await res.json());
+    const payload = await res.json();
+    return NextResponse.json(payload, { status: res.status });
   } catch (e) {
-    console.error('nonce route:', e);
-    return NextResponse.json({ error: 'Nonce unavailable' }, { status: 502 });
+    console.error('wallet challenge route:', e);
+    return NextResponse.json(
+      { error: 'Wallet challenge unavailable' },
+      { status: 502 }
+    );
   }
 }

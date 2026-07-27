@@ -79,15 +79,20 @@ export default function Web3AuthButton({
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
 
-      // Fetch nonce from server
-      const nonceResponse = await fetch('/api/auth/nonce');
+      // Fetch the complete Core-issued EIP-4361 message. Sign it verbatim;
+      // reconstructing it client-side would weaken the origin/time binding.
+      const nonceResponse = await fetch('/api/auth/nonce', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
+      });
       if (!nonceResponse.ok) {
         throw new Error('Failed to fetch authentication challenge');
       }
-      const { nonce } = await nonceResponse.json();
-
-      // Create the message to sign
-      const message = `Sign in to AIPG Grid\n\nNonce: ${nonce}`;
+      const { nonce, message } = await nonceResponse.json();
+      if (!nonce || !message) {
+        throw new Error('Invalid authentication challenge');
+      }
 
       // Sign the message
       const signature = await signer.signMessage(message);
@@ -97,6 +102,7 @@ export default function Web3AuthButton({
         address,
         signature,
         nonce,
+        message,
         redirect: false,
         callbackUrl
       });

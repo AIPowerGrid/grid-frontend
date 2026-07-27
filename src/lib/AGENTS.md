@@ -8,7 +8,9 @@ provisioning helpers, search parameters, and small shared utilities.
 ## Ownership
 
 - `auth.ts` / `auth.config.ts` — Auth.js setup. Providers: Google, GitHub, and
-  Web3/SIWE. Google/SIWE proof or a namespaced app subject is exchanged for a
+  strict EIP-4361 Web3/SIWE. The Core-issued message is signed verbatim and binds
+  the wallet, Console origin, Base chain, issuance, expiry, and nonce.
+  Google/SIWE proof or a namespaced app subject is exchanged for a
   short-lived Core token stored in the httpOnly JWT (`gridAccessToken`); the
   session exposes only `gridAccountId`.
 - `grid-api.ts` — `GRID_API_BASE` + `gridFetch` (cached `fetch` wrapper) and v1 response
