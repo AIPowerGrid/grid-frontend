@@ -38,7 +38,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 - Funding may use any wallet that Core has verified on the canonical account.
   Browser balance checks improve UX only; Core receipt verification remains
   authoritative for sender, token, treasury, amount, confirmations, and
-  idempotency.
+  idempotency. After broadcast, persist the asset and public transaction hash
+  until Core credits it. Recovery must retry that same hash and must never
+  resend the payment.
 
 ## Work Guidance
 

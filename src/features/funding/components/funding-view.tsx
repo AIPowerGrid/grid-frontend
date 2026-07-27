@@ -45,6 +45,7 @@ const ERC20_ABI = [
 ];
 const BASE_CHAIN_HEX = '0x2105';
 const BASESCAN = 'https://basescan.org';
+const PENDING_DEPOSIT_KEY = 'aipg.pendingDeposit.v1';
 
 interface FundingAsset {
   asset: 'USDC' | 'AIPG' | 'ETH';
@@ -97,6 +98,11 @@ interface CreditsResponse {
   charging_enabled?: boolean;
 }
 
+interface PendingDeposit {
+  asset: FundingAsset['asset'];
+  txHash: string;
+}
+
 function errorMessage(value: unknown, fallback: string) {
   if (value instanceof Error) return value.message;
   return fallback;
@@ -113,6 +119,18 @@ function formatUsd(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4
   }).format(value);
+}
+
+function isPendingDeposit(value: unknown): value is PendingDeposit {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    (candidate.asset === 'USDC' ||
+      candidate.asset === 'AIPG' ||
+      candidate.asset === 'ETH') &&
+    typeof candidate.txHash === 'string' &&
+    /^0x[0-9a-fA-F]{64}$/.test(candidate.txHash)
+  );
 }
 
 async function switchToBase(provider: Eip1193Provider) {
@@ -149,6 +167,9 @@ export default function FundingView() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pendingHash, setPendingHash] = useState<string | null>(null);
+  const [pendingAsset, setPendingAsset] = useState<
+    FundingAsset['asset'] | null
+  >(null);
   const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const [walletProviders, setWalletProviders] = useState<
     WalletProviderOption[]
@@ -189,6 +210,22 @@ export default function FundingView() {
   }, [refresh]);
 
   useEffect(() => watchWalletProviders(setWalletProviders), []);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(PENDING_DEPOSIT_KEY);
+      if (!stored) return;
+      const pending = JSON.parse(stored);
+      if (!isPendingDeposit(pending)) {
+        window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+        return;
+      }
+      setPendingAsset(pending.asset);
+      setPendingHash(pending.txHash);
+    } catch {
+      window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+    }
+  }, []);
 
   const assets = config?.assets ?? [];
   const selected =
@@ -352,7 +389,25 @@ export default function FundingView() {
     }
   }
 
-  async function claim(asset: string, txHash: string) {
+  function rememberPendingDeposit(
+    asset: FundingAsset['asset'],
+    txHash: string
+  ) {
+    setPendingAsset(asset);
+    setPendingHash(txHash);
+    window.localStorage.setItem(
+      PENDING_DEPOSIT_KEY,
+      JSON.stringify({ asset, txHash })
+    );
+  }
+
+  function clearPendingDeposit() {
+    setPendingAsset(null);
+    setPendingHash(null);
+    window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+  }
+
+  async function claim(asset: FundingAsset['asset'], txHash: string) {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const response = await fetch('/api/account/deposits', {
         method: 'POST',
@@ -369,12 +424,45 @@ export default function FundingView() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
     throw new Error(
-      'The transaction is still confirming. Use refresh to claim it shortly.'
+      'The transaction is still confirming. Use Retry credit shortly; do not send another payment.'
     );
+  }
+
+  async function finishCredit(asset: FundingAsset['asset'], txHash: string) {
+    const receipt = await claim(asset, txHash);
+    clearPendingDeposit();
+    setSuccess(
+      `${receipt.amount} ${asset} added ${formatUsd(receipt.amount_usd)} to your balance.`
+    );
+    setAmount('');
+    await refresh();
+    if (paymentProvider && paymentWallet) {
+      await readPaymentWallet(paymentProvider, paymentWallet, selected);
+    }
+  }
+
+  async function retryPendingClaim() {
+    if (!pendingAsset || !pendingHash) return;
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await finishCredit(pendingAsset, pendingHash);
+    } catch (reason) {
+      setError(errorMessage(reason, 'The payment could not be credited yet.'));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function fund() {
     if (!selected?.enabled || !selected.treasury) return;
+    if (pendingHash) {
+      setError(
+        'Resolve the pending payment with Retry credit before sending another.'
+      );
+      return;
+    }
     if (!paymentProvider || !paymentWallet) {
       setError('Connect a payment wallet before funding this account.');
       return;
@@ -382,7 +470,6 @@ export default function FundingView() {
     setSubmitting(true);
     setError(null);
     setSuccess(null);
-    setPendingHash(null);
     try {
       await switchToBase(paymentProvider.provider);
       const provider = new BrowserProvider(paymentProvider.provider);
@@ -450,15 +537,9 @@ export default function FundingView() {
         }
         transaction = await token.transfer(selected.treasury, raw);
       }
-      setPendingHash(transaction.hash);
+      rememberPendingDeposit(selected.asset, transaction.hash);
       await transaction.wait(1);
-      const receipt = await claim(selected.asset, transaction.hash);
-      setSuccess(
-        `${receipt.amount} ${selected.asset} added ${formatUsd(receipt.amount_usd)} to your balance.`
-      );
-      setAmount('');
-      await refresh();
-      await readPaymentWallet(paymentProvider, paymentWallet, selected);
+      await finishCredit(selected.asset, transaction.hash);
     } catch (reason) {
       setError(errorMessage(reason, 'Funding failed.'));
     } finally {
@@ -524,6 +605,54 @@ export default function FundingView() {
           <CheckCircle2 className='h-4 w-4' />
           <AlertTitle>Credits added</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
+
+      {pendingHash && pendingAsset && (
+        <Alert>
+          <Clock3 className='h-4 w-4' />
+          <AlertTitle>Payment sent, credit pending</AlertTitle>
+          <AlertDescription className='space-y-3'>
+            <p>
+              Retry this transaction hash to finish crediting. This does not
+              send another payment.
+            </p>
+            <div className='flex flex-wrap gap-2'>
+              <Button
+                type='button'
+                size='sm'
+                className='gap-2'
+                disabled={submitting}
+                onClick={() => void retryPendingClaim()}
+              >
+                {submitting ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : (
+                  <RefreshCw className='h-4 w-4' />
+                )}
+                Retry credit
+              </Button>
+              <Button asChild type='button' size='sm' variant='outline'>
+                <a
+                  href={`${BASESCAN}/tx/${pendingHash}`}
+                  target='_blank'
+                  rel='noreferrer'
+                >
+                  View on BaseScan
+                  <ExternalLink className='ml-2 h-3 w-3' />
+                </a>
+              </Button>
+              <Button
+                type='button'
+                size='sm'
+                variant='ghost'
+                disabled={submitting}
+                onClick={clearPendingDeposit}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </AlertDescription>
         </Alert>
       )}
 
@@ -686,6 +815,7 @@ export default function FundingView() {
                   disabled={
                     submitting ||
                     checkingWallet ||
+                    pendingHash !== null ||
                     !amount ||
                     walletProblem !== null
                   }
@@ -705,6 +835,11 @@ export default function FundingView() {
                 {!submitting && walletProblem && (
                   <p className='text-center text-xs text-muted-foreground'>
                     {walletProblem}
+                  </p>
+                )}
+                {!submitting && pendingHash && (
+                  <p className='text-center text-xs text-muted-foreground'>
+                    Resolve the pending payment above before sending another.
                   </p>
                 )}
                 {pendingHash && (
