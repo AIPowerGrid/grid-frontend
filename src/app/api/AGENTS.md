@@ -17,7 +17,8 @@ browser JavaScript.
 - `account/credits/` — the signed-in account's spendable credits (free daily +
   promotional + paid pockets; forwards the Core token to `/v1/account/credits`).
 - `account/deposits/` — signed-in Base funding config, immutable receipts, and
-  USDC/AIPG/ETH claim forwarding. The browser never receives the Core token.
+  USDC/AIPG/conversion-backed ETH claim forwarding. The browser never receives
+  the Core token; ETH must not proxy to the buffered direct-ETH pilot.
 - `account/identities/wallet/{nonce,link}/` — session-gated proof-of-both wallet
   linking; the BFF never exposes the Core user token.
 - `worker-enrollments/[enrollmentId]/` — public safe-intent read plus

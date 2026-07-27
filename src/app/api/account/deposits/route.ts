@@ -5,7 +5,7 @@ import { getSessionToken, resolveGridKey } from '@/lib/grid-account';
 const CLAIM_PATH = {
   USDC: '/v1/account/deposits/claim',
   AIPG: '/v1/account/deposits/claim-aipg',
-  ETH: '/v1/account/deposits/claim-eth'
+  ETH: '/v1/account/deposits/claim-eth-converted'
 } as const;
 
 async function accountKey(req: NextRequest) {

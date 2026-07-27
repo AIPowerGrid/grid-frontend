@@ -46,12 +46,39 @@
       "AudioRequest": {
         "additionalProperties": false,
         "properties": {
+          "bpm": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 30.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bpm"
+          },
           "inference_steps": {
             "default": 8,
             "maximum": 20.0,
             "minimum": 1.0,
             "title": "Inference Steps",
             "type": "integer"
+          },
+          "key_scale": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "minLength": 7,
+                "pattern": "^[A-G](?:#|b)? (?:Major|minor)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Scale"
           },
           "lyrics": {
             "default": "",
@@ -109,6 +136,37 @@
               }
             ],
             "title": "Seed"
+          },
+          "time_signature": {
+            "anyOf": [
+              {
+                "enum": [
+                  "2/4",
+                  "3/4",
+                  "4/4",
+                  "6/8"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Signature"
+          },
+          "vocal_language": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "pattern": "^[a-z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vocal Language"
           },
           "worker": {
             "anyOf": [
@@ -1427,7 +1485,7 @@
     },
     "/v1/account/credits": {
       "get": {
-        "description": "The account's spendable credits \u2014 what the front ends show as\n'X free today' + '$Y balance' + a top-up prompt.\n\nThree pockets, one USD unit (micro-USD): promotional grants (campaign-bound\nand expiring), the daily free allowance (resets UTC midnight, tiered by AIPG\nheld), and purchased balance (from on-chain deposits, never expires).\n\nThe free-first draw IS integrated into the live durable reserve path\n(authorize_request / authorize_media hold free-first with reserve/release\nsemantics), gated on GRID_FREE_SPENDABLE_LIVE. `free.active` below reflects\nthat flag: false \u2192 free is display-only and total_spendable = paid only;\ntrue \u2192 charges draw free-first and total_spendable includes it.\ncharging_enabled is the overall live gate (dark = nothing is charged).",
+        "description": "The account's spendable credits \u2014 what the front ends show as\n'X free today' + '$Y balance' + a top-up prompt.\n\nThree pockets, one USD unit (micro-USD): promotional grants (campaign-bound\nand expiring), the daily free allowance (resets UTC midnight, tiered by AIPG\nheld), and purchased balance (from on-chain deposits, never expires).\n\nThe free-first draw IS integrated into the live durable reserve path\n(authorize_request / authorize_media hold free-first with reserve/release\nsemantics), gated on GRID_FREE_SPENDABLE_LIVE. `free.active` below reflects\nthat flag: false \u2192 free is display-only and total_spendable = paid only;\ntrue \u2192 charges draw free-first and total_spendable includes it.\ncharging_enabled is the effective gate for this account. charging_mode\nexposes the operator rollout state without exposing the allowlist.",
         "operationId": "get_credits_v1_account_credits_get",
         "parameters": [
           {
@@ -1518,6 +1576,77 @@
         "summary": "Get Credits"
       }
     },
+    "/v1/account/deposits": {
+      "get": {
+        "description": "Immutable Base funding receipts for the authenticated account.",
+        "operationId": "get_deposit_history_v1_account_deposits_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Deposit History"
+      }
+    },
     "/v1/account/deposits/claim": {
       "post": {
         "description": "Credit the account for a USDC-on-Base deposit to the grid treasury.\n\nThe user sends USDC on Base, then submits the tx hash here; the grid verifies\nthe on-chain transfer (to the treasury, from the account's own wallet, enough\nconfirmations) and credits the prepaid balance 1:1. Idempotent on the tx hash.\n503 until the grid is configured with a treasury address (GRID_USDC_TREASURY).",
@@ -1589,9 +1718,80 @@
         "summary": "Claim Deposit"
       }
     },
+    "/v1/account/deposits/claim-aipg": {
+      "post": {
+        "description": "Credit a direct AIPG-on-Base deposit under the current price epoch.\n\nAIPG funding is available only while an operator-published valuation is\nfresh. Core applies a haircut and hard transaction/account/network caps\nbefore atomically writing the deposit receipt and purchased credit.",
+        "operationId": "claim_aipg_deposit_v1_account_deposits_claim_aipg_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimDepositForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim Aipg Deposit"
+      }
+    },
     "/v1/account/deposits/claim-eth": {
       "post": {
-        "description": "Credit the account for a native-ETH deposit to the grid treasury.\n\nThe user sends ETH on Base, then submits the tx hash here; the grid verifies\nthe transfer (to the treasury, from the account's own wallet, enough\nconfirmations) and credits the prepaid balance in USD, priced ETH\u2192USD via the\nChainlink feed at claim time. Idempotent on the tx hash. 503 until the grid is\nconfigured with a treasury (GRID_ETH_TREASURY, or the shared GRID_USDC_TREASURY).",
+        "description": "Credit the account for a native-ETH deposit to the grid treasury.\n\nDirect ETH is disabled by default. A tightly capped ``buffered`` pilot can\nbe enabled explicitly; the target production flow swaps ETH to USDC first\nand credits the actual stablecoin received.",
         "operationId": "claim_eth_deposit_v1_account_deposits_claim_eth_post",
         "parameters": [
           {
@@ -1658,6 +1858,138 @@
           }
         },
         "summary": "Claim Eth Deposit"
+      }
+    },
+    "/v1/account/deposits/claim-eth-converted": {
+      "post": {
+        "description": "Credit actual USDC delivered by a confirmed Base ETH swap transaction.",
+        "operationId": "claim_converted_eth_deposit_v1_account_deposits_claim_eth_converted_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimDepositForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim Converted Eth Deposit"
+      }
+    },
+    "/v1/account/deposits/config": {
+      "get": {
+        "description": "Funding assets, Base addresses, limits, and non-withdrawable terms.",
+        "operationId": "get_deposit_config_v1_account_deposits_config_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Deposit Config"
       }
     },
     "/v1/account/identities/wallet/link": {
@@ -3633,7 +3965,7 @@
     },
     "/v1/status/models": {
       "get": {
-        "description": "Models currently served, with how many workers serve each \u2014 plus recent\nper-model performance (t/s, TTFT, avg latency) from the last 24h of ledger\ntiming, so a picker can show live availability AND how fast each model is.",
+        "description": "Models currently served, with how many workers serve each \u2014 plus recent\nper-model performance (t/s, TTFT, avg latency) from the last 24h of ledger\ntiming. Includes recipe-backed public model names when compatible workers\nhave every required checkpoint, not just raw worker-advertised checkpoints.",
         "operationId": "status_models_v1_status_models_get",
         "responses": {
           "200": {
@@ -4697,6 +5029,43 @@
           }
         },
         "summary": "Prepare Worker Enrollment"
+      }
+    },
+    "/v1/x402/chat/completions": {
+      "post": {
+        "description": "Accountless, non-streaming chat paid per request in Base USDC.",
+        "operationId": "x402_chat_completions_v1_x402_chat_completions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "X402 Chat Completions"
       }
     }
   }
