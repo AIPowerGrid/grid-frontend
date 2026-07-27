@@ -59,6 +59,10 @@ interface FundingAsset {
   haircut_bps?: number;
   minimum_credit_micro?: number;
   maximum_credit_micro?: number;
+  account_daily_micro?: number;
+  account_daily_used_micro?: number;
+  account_daily_remaining_micro?: number;
+  network_daily_remaining_micro?: number;
   status: string;
 }
 
@@ -231,18 +235,32 @@ export default function FundingView() {
   const selected =
     assets.find((candidate) => candidate.asset === assetName) ?? null;
 
-  const estimatedCredit = useMemo(() => {
+  const estimatedCreditMicro = useMemo(() => {
     if (!selected || !amount || !selected.price_micro) return null;
     try {
       const raw = ethers.parseUnits(amount, selected.decimals);
       const scale = ethers.parseUnits('1', selected.decimals);
       const market = (raw * BigInt(selected.price_micro)) / scale;
       const haircut = BigInt(10_000 - (selected.haircut_bps ?? 0));
-      return Number((market * haircut) / BigInt(10_000)) / 1_000_000;
+      return (market * haircut) / BigInt(10_000);
     } catch {
       return null;
     }
   }, [amount, selected]);
+
+  const estimatedCredit =
+    estimatedCreditMicro === null
+      ? null
+      : Number(estimatedCreditMicro) / 1_000_000;
+
+  const availableTodayMicro = useMemo(() => {
+    if (!selected) return null;
+    const remaining = [
+      selected.account_daily_remaining_micro,
+      selected.network_daily_remaining_micro
+    ].filter((value): value is number => value !== undefined);
+    return remaining.length ? Math.min(...remaining) : null;
+  }, [selected]);
 
   const verifiedWallets = useMemo(() => {
     const values = config?.linked_wallets?.length
@@ -274,6 +292,27 @@ export default function FundingView() {
     }
     if (!parsedAmount) return 'Enter a valid amount.';
     if (
+      estimatedCreditMicro !== null &&
+      selected?.minimum_credit_micro !== undefined &&
+      estimatedCreditMicro < BigInt(selected.minimum_credit_micro)
+    ) {
+      return `Minimum credit is ${formatUsd(selected.minimum_credit_micro / 1_000_000)}.`;
+    }
+    if (
+      estimatedCreditMicro !== null &&
+      selected?.maximum_credit_micro !== undefined &&
+      estimatedCreditMicro > BigInt(selected.maximum_credit_micro)
+    ) {
+      return `Per-transfer cap is ${formatUsd(selected.maximum_credit_micro / 1_000_000)}.`;
+    }
+    if (
+      estimatedCreditMicro !== null &&
+      availableTodayMicro !== null &&
+      estimatedCreditMicro > BigInt(availableTodayMicro)
+    ) {
+      return `Only ${formatUsd(availableTodayMicro / 1_000_000)} of funding capacity remains today.`;
+    }
+    if (
       selected?.asset !== 'ETH' &&
       paymentStatus.assetBalance !== null &&
       paymentStatus.assetBalance < parsedAmount
@@ -285,7 +324,9 @@ export default function FundingView() {
     }
     return null;
   }, [
+    availableTodayMicro,
     config?.chain.id,
+    estimatedCreditMicro,
     parsedAmount,
     paymentProvider,
     paymentStatus,
@@ -804,6 +845,14 @@ export default function FundingView() {
                       <p className='text-muted-foreground'>Per-transfer cap</p>
                       <p className='font-medium tabular-nums'>
                         {formatUsd(selected.maximum_credit_micro / 1_000_000)}
+                      </p>
+                    </div>
+                  )}
+                  {availableTodayMicro !== null && (
+                    <div>
+                      <p className='text-muted-foreground'>Available today</p>
+                      <p className='font-medium tabular-nums'>
+                        {formatUsd(availableTodayMicro / 1_000_000)}
                       </p>
                     </div>
                   )}

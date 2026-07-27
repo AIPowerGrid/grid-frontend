@@ -40,7 +40,8 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   authoritative for sender, token, treasury, amount, confirmations, and
   idempotency. After broadcast, persist the asset and public transaction hash
   until Core credits it. Recovery must retry that same hash and must never
-  resend the payment.
+  resend the payment. Preflight against Core's advisory remaining daily
+  capacity before opening the wallet; Core's locked cap check remains final.
 
 ## Work Guidance
 
