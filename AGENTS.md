@@ -94,7 +94,10 @@ described as deployable until the build and Worker configuration land together.
 
 - `pnpm lint` (ESLint, `eslint-config-next`) and `pnpm format:check`
   (non-writing Prettier check).
-- `pnpm build` must succeed (typecheck runs in build). No unit test suite exists yet.
+- `pnpm build` must succeed (typecheck runs in build). After building,
+  `pnpm test:auth-smoke` runs the production server against a local mock Core
+  and verifies current-token forwarding, canonical-account refresh, purchased
+  credit passthrough, anonymous rejection, and account-mismatch failure.
 - Husky + lint-staged run Prettier on staged files pre-commit.
 
 ## Child DOX Index

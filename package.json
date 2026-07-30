@@ -18,6 +18,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix && pnpm format",
     "lint:strict": "eslint --max-warnings=0 src",
+    "test:auth-smoke": "node scripts/auth-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
