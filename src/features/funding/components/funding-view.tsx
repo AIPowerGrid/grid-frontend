@@ -231,7 +231,22 @@ export default function FundingView() {
     }
   }, []);
 
-  const assets = config?.assets ?? [];
+  const assets = useMemo(
+    () => (config?.assets ?? []).filter((asset) => asset.enabled),
+    [config]
+  );
+
+  useEffect(() => {
+    if (
+      assets.length > 0 &&
+      !assets.some((asset) => asset.asset === assetName)
+    ) {
+      setAssetName(assets[0].asset);
+      setAmount('');
+      setError(null);
+    }
+  }, [assetName, assets]);
+
   const selected =
     assets.find((candidate) => candidate.asset === assetName) ?? null;
 
@@ -712,7 +727,12 @@ export default function FundingView() {
                 setError(null);
               }}
             >
-              <TabsList className='grid h-auto w-full grid-cols-3'>
+              <TabsList
+                className='grid h-auto w-full'
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(assets.length, 1)}, minmax(0, 1fr))`
+                }}
+              >
                 {assets.map((asset) => (
                   <TabsTrigger
                     key={asset.asset}

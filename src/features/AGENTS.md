@@ -36,6 +36,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   locally before opening the wallet signature prompt.
 - Forms use React Hook Form + Zod schemas (e.g. `profile/utils/form-schema.ts`).
 - Funding may use any wallet that Core has verified on the canonical account.
+  The funding selector renders only assets Core marks enabled; disabled future
+  rails may remain in Core's configuration for operators but must not be
+  advertised as launch options.
   Browser balance checks improve UX only; Core receipt verification remains
   authoritative for sender, token, treasury, amount, confirmations, and
   idempotency. After broadcast, persist the asset and public transaction hash
