@@ -225,11 +225,19 @@ const authConfig = {
         const grid = await gridSession({
           subject: token.provider_id as string
         });
-        if (grid) {
+        const expectedAccountId = (token as any).gridAccountId as
+          | string
+          | undefined;
+        if (
+          grid &&
+          (!expectedAccountId || grid.account_id === expectedAccountId)
+        ) {
           (token as any).gridAccountId = grid.account_id;
           (token as any).gridAccessToken = grid.access_token;
           (token as any).gridAccessTokenExpiresAt =
             Date.now() + Number(grid.expires_in ?? 900) * 1000;
+        } else if (grid) {
+          console.error('gridSession: canonical Grid account mismatch');
         }
       }
       return token;

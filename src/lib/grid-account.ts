@@ -71,6 +71,14 @@ export async function resolveGridKey(token: any): Promise<string | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
+    const expectedAccountId = token?.gridAccountId as string | undefined;
+    if (
+      expectedAccountId &&
+      (!data?.account_id || data.account_id !== expectedAccountId)
+    ) {
+      console.error('resolveGridKey: canonical Grid account mismatch');
+      return null;
+    }
     return (data?.access_token as string) ?? null;
   } catch {
     return null;

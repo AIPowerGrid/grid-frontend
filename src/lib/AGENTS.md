@@ -25,6 +25,9 @@ provisioning helpers, search parameters, and small shared utilities.
 - The Core user token and Console service key never leave the server. The user
   token lives in the JWT and route handlers forward it; do not expose either via
   `session`.
+- Token refresh must preserve the session's canonical `gridAccountId`. If a
+  service exchange returns a different account, fail closed and require a new
+  proof-backed login; never move a live Console session to another balance.
 - `gridSession` / wallet verify **soft-fail** (return `null`): a grid outage degrades key
   features but must not break sign-in.
 - `grid-api.ts` is the only place that constructs grid URLs/headers — route handlers call
