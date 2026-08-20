@@ -47,6 +47,8 @@ described as deployable until the build and Worker configuration land together.
 ## Ownership
 
 - **`src/`** — all application source; owned by `src/AGENTS.md`.
+- **`.github/workflows/ci.yml`** — frozen-install Console verification: format,
+  strict lint, production build, and canonical-account auth/credits smoke test.
 - **`src/app/`** — App Router. `api/` = server route handlers (the BFF); `dashboard/` =
   authed pages; `(auth)/` = sign-in; `api-doc/` = hosted OpenAPI reference.
 - **`src/lib/`** — shared server infra: Auth.js config and the grid v1 client.
@@ -98,6 +100,8 @@ described as deployable until the build and Worker configuration land together.
   `pnpm test:auth-smoke` runs the production server against a local mock Core
   and verifies current-token forwarding, canonical-account refresh, purchased
   credit passthrough, anonymous rejection, and account-mismatch failure.
+- `Console CI / verify` runs the same checks on pushes and pull requests to
+  `master` without production credentials.
 - Husky + lint-staged run Prettier on staged files pre-commit.
 
 ## Child DOX Index
