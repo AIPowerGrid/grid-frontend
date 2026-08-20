@@ -20,10 +20,11 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
 - `validators/` — validator onboarding plus aggregate evidence scorecards and
   assignment health. Onboarding requires a linked wallet, issues a one-time
-  validator-purpose key with the exact validator scopes, and points operators to
-  the verified release. Preview and assignment-bound evidence must be visually
-  distinct. Evidence states are not independent-node quorum and have no live
-  routing, payout, reward, strike, or slash authority.
+  validator-purpose key with the exact validator scopes, and exposes downloads
+  only after the matching Core migration and verified preview release are live.
+  Preview and assignment-bound evidence must be visually distinct. Evidence
+  states are not independent-node quorum and have no live routing, payout,
+  reward, strike, or slash authority.
 - `settings/` — settings view + username-change section.
   Linked identities use Core-issued nonces and exact-purpose wallet signatures;
   the browser never chooses the destination account independently.

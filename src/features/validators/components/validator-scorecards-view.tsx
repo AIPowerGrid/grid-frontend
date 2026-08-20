@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Copy,
   Download,
-  ExternalLink,
   Gauge,
   GitBranch,
   KeyRound,
@@ -468,17 +467,12 @@ export default function ValidatorScorecardsView() {
                 3. Install and check
               </div>
               <p className='text-sm text-muted-foreground'>
-                Download the signed release, run setup, then prove registration
-                and Core connectivity before leaving it online.
+                Downloads open after the Core validator migration and signed
+                preview release are live. Then run setup and prove registration
+                before leaving the node online.
               </p>
-              <Button asChild variant='outline' size='sm'>
-                <a
-                  href='https://github.com/AIPowerGrid/grid-validator/releases/tag/v0.1.0-preview'
-                  target='_blank'
-                  rel='noreferrer'
-                >
-                  Release downloads <ExternalLink className='ml-2 h-4 w-4' />
-                </a>
+              <Button type='button' variant='outline' size='sm' disabled>
+                Release pending Core rollout
               </Button>
             </div>
           </div>
