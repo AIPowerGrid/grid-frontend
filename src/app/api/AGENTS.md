@@ -36,8 +36,9 @@ browser JavaScript.
 - `models/`, `models-count/`, `workers/`, `workers-count/`, `historical-stats/`,
   `text-gen-stats/`, `image-gen-stats/` — public stats/registry reads via `gridFetch`.
 - `validator/scorecards/` and `validator/assignments/health/` — authed proxies
-  for aggregate validator evidence and assignment/quorum health; informational
-  only, no raw evidence or economic effects.
+  for aggregate validator evidence and assignment workflow health;
+  informational only, no raw evidence, independent-quorum claim, or economic
+  effects.
 - `sentry/workerRewards/[address]/` — wallet earnings via grid v1 (validates `0x` address).
 
 ## Local Contracts

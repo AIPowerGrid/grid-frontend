@@ -4,12 +4,18 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   CheckCircle2,
+  Copy,
+  Download,
+  ExternalLink,
   Gauge,
   GitBranch,
+  KeyRound,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Timer
+  Terminal,
+  Timer,
+  WalletCards
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -92,6 +98,11 @@ interface AssignmentHealthResponse {
   recent: AssignmentItem[];
   economic_effect: string;
   error?: string;
+}
+
+interface AccountInfo {
+  account_id: string;
+  wallet: string | null;
 }
 
 const WINDOWS: { label: string; value: WindowHours }[] = [
@@ -179,6 +190,67 @@ export default function ValidatorScorecardsView() {
   const [health, setHealth] = useState<AssignmentHealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [account, setAccount] = useState<AccountInfo | null>(null);
+  const [accountLoading, setAccountLoading] = useState(true);
+  const [keyCreating, setKeyCreating] = useState(false);
+  const [validatorKey, setValidatorKey] = useState('');
+  const [keyCopied, setKeyCopied] = useState(false);
+  const [onboardingError, setOnboardingError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/account', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Grid account unavailable');
+        return (await res.json()) as AccountInfo;
+      })
+      .then((next) => {
+        if (!cancelled) setAccount(next);
+      })
+      .catch(() => {
+        if (!cancelled)
+          setOnboardingError('Sign in again to prepare a validator.');
+      })
+      .finally(() => {
+        if (!cancelled) setAccountLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function createValidatorKey() {
+    setKeyCreating(true);
+    setOnboardingError('');
+    try {
+      const res = await fetch('/api/account/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: `validator-${new Date().toISOString().slice(0, 10)}`,
+          purpose: 'validator'
+        })
+      });
+      const body = await res.json();
+      if (!res.ok || !body?.api_key) {
+        throw new Error(body?.detail || body?.error || 'Key creation failed');
+      }
+      setValidatorKey(body.api_key);
+    } catch (err) {
+      setOnboardingError(
+        err instanceof Error ? err.message : 'Validator key creation failed'
+      );
+    } finally {
+      setKeyCreating(false);
+    }
+  }
+
+  async function copyValidatorKey() {
+    if (!validatorKey) return;
+    await navigator.clipboard.writeText(validatorKey);
+    setKeyCopied(true);
+    window.setTimeout(() => setKeyCopied(false), 1500);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -317,14 +389,135 @@ export default function ValidatorScorecardsView() {
 
       <Alert>
         <ShieldCheck className='h-4 w-4' />
-        <AlertTitle>Evidence-only V0</AlertTitle>
+        <AlertTitle>Preview evidence, no rewards yet</AlertTitle>
         <AlertDescription>
           These scorecards summarize validator attestations only. They do not
           change routing, payouts, strikes, slashing, credits, or ledger rows.
           Authoritative rows require a Grid assignment id, nonce, and probe
-          evidence hash; preview rows are local/model-routed evidence.
+          evidence hash. Shared multi-validator quorum, validator staking, and
+          validator rewards are not live.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardContent className='space-y-6 p-5'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
+            <div>
+              <h2 className='font-semibold'>Run a preview validator</h2>
+              <p className='mt-1 max-w-3xl text-sm text-muted-foreground'>
+                A CPU-only validator receives short-lived Grid assignments,
+                probes the assigned worker, and signs the resulting evidence.
+                Missing assignments fail closed; the node does not probe random
+                production traffic.
+              </p>
+            </div>
+            <Badge variant='outline'>v0.1.0-preview</Badge>
+          </div>
+
+          <div className='grid gap-px overflow-hidden rounded-md border bg-border md:grid-cols-3'>
+            <div className='space-y-3 bg-background p-5'>
+              <div className='flex items-center gap-2 font-medium'>
+                <WalletCards className='h-4 w-4 text-orange-500' />
+                1. Link the signing wallet
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                The node&apos;s signing wallet must be linked to this Grid
+                account.
+              </p>
+              {accountLoading ? (
+                <Skeleton className='h-9 w-full' />
+              ) : account?.wallet ? (
+                <code className='block break-all rounded bg-muted px-3 py-2 text-xs'>
+                  {account.wallet}
+                </code>
+              ) : (
+                <Button asChild variant='outline' size='sm'>
+                  <a href='/dashboard/settings'>Link wallet</a>
+                </Button>
+              )}
+            </div>
+
+            <div className='space-y-3 bg-background p-5'>
+              <div className='flex items-center gap-2 font-medium'>
+                <KeyRound className='h-4 w-4 text-sky-500' />
+                2. Create a validator key
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                This key can only read assignments, probe, attest, and read
+                validator status. It cannot submit inference or manage funds.
+              </p>
+              <Button
+                type='button'
+                size='sm'
+                onClick={createValidatorKey}
+                disabled={
+                  keyCreating || !account?.wallet || Boolean(validatorKey)
+                }
+              >
+                {keyCreating
+                  ? 'Creating…'
+                  : validatorKey
+                    ? 'Key created'
+                    : 'Create key'}
+              </Button>
+            </div>
+
+            <div className='space-y-3 bg-background p-5'>
+              <div className='flex items-center gap-2 font-medium'>
+                <Download className='h-4 w-4 text-emerald-500' />
+                3. Install and check
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                Download the signed release, run setup, then prove registration
+                and Core connectivity before leaving it online.
+              </p>
+              <Button asChild variant='outline' size='sm'>
+                <a
+                  href='https://github.com/AIPowerGrid/grid-validator/releases/tag/v0.1.0-preview'
+                  target='_blank'
+                  rel='noreferrer'
+                >
+                  Release downloads <ExternalLink className='ml-2 h-4 w-4' />
+                </a>
+              </Button>
+            </div>
+          </div>
+
+          {validatorKey ? (
+            <div className='space-y-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-4'>
+              <p className='text-sm font-medium text-emerald-600 dark:text-emerald-400'>
+                Copy this key now. Core stores only its hash.
+              </p>
+              <div className='flex flex-col gap-2 sm:flex-row'>
+                <code className='min-w-0 flex-1 overflow-x-auto rounded bg-background px-3 py-2 text-xs'>
+                  {validatorKey}
+                </code>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  size='sm'
+                  onClick={copyValidatorKey}
+                >
+                  <Copy className='mr-2 h-4 w-4' />
+                  {keyCopied ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className='flex items-start gap-3 rounded-md bg-muted/60 p-4'>
+            <Terminal className='mt-0.5 h-4 w-4 shrink-0' />
+            <div className='space-y-1 text-sm'>
+              <code className='block'>aipg-validator init</code>
+              <code className='block'>aipg-validator check</code>
+              <code className='block'>aipg-validator run</code>
+            </div>
+          </div>
+          {onboardingError ? (
+            <p className='text-sm text-destructive'>{onboardingError}</p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
         <StatCard
@@ -355,21 +548,21 @@ export default function ValidatorScorecardsView() {
 
       <div className='grid gap-4 lg:grid-cols-4'>
         <StatCard
-          label='Pending quorum'
+          label='Pending evidence'
           value={showStats ? (health?.quorum.pending ?? 0) : '—'}
           hint='Awaiting assignment evidence'
           icon={GitBranch}
         />
         <StatCard
-          label='Accepted'
+          label='Accepted evidence'
           value={showStats ? (health?.quorum.accepted ?? 0) : '—'}
-          hint='Agreement reached'
+          hint='Single assignment accepted'
           icon={CheckCircle2}
         />
         <StatCard
-          label='Disputed'
+          label='Disputed evidence'
           value={showStats ? (health?.quorum.disputed ?? 0) : '—'}
-          hint='Conflicting evidence'
+          hint='Probe and attestation differ'
           icon={ShieldAlert}
         />
         <StatCard
@@ -386,7 +579,8 @@ export default function ValidatorScorecardsView() {
             <div>
               <h2 className='font-semibold'>Assignment Health</h2>
               <p className='text-sm text-muted-foreground'>
-                Recent Grid-issued validator assignments and their quorum state.
+                Recent Grid-issued assignments and their evidence state. This is
+                not shared multi-validator quorum.
               </p>
             </div>
             <Badge variant='outline'>
@@ -408,7 +602,7 @@ export default function ValidatorScorecardsView() {
                     <TableHead>Assignment</TableHead>
                     <TableHead>Target</TableHead>
                     <TableHead>Probe</TableHead>
-                    <TableHead>Quorum</TableHead>
+                    <TableHead>Evidence</TableHead>
                     <TableHead className='text-right'>Expires</TableHead>
                   </TableRow>
                 </TableHeader>

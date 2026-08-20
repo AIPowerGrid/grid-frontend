@@ -18,10 +18,12 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 - `workers/` — worker list plus device-enrollment approval. The browser signs
   only Core's exact delegation message and locally confirms the recovered
   signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
-- `validators/` — aggregate validator evidence scorecards plus
-  assignment/quorum health. Preview evidence and assignment-bound authoritative
-  evidence must be visually distinct; never present either as live routing,
-  payout, strike, or slash authority.
+- `validators/` — validator onboarding plus aggregate evidence scorecards and
+  assignment health. Onboarding requires a linked wallet, issues a one-time
+  validator-purpose key with the exact validator scopes, and points operators to
+  the verified release. Preview and assignment-bound evidence must be visually
+  distinct. Evidence states are not independent-node quorum and have no live
+  routing, payout, reward, strike, or slash authority.
 - `settings/` — settings view + username-change section.
   Linked identities use Core-issued nonces and exact-purpose wallet signatures;
   the browser never chooses the destination account independently.
@@ -34,6 +36,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   URL directly). Server components may use `gridFetch` from `src/lib/grid-api.ts`.
 - Worker enrollment must verify Core's canonical delegation fields and message
   locally before opening the wallet signature prompt.
+- Validator key plaintext is displayed once and must never be stored in browser
+  persistence or logged. Do not offer onboarding until the canonical account has
+  a linked wallet; the node's signing wallet must match it during registration.
 - Forms use React Hook Form + Zod schemas (e.g. `profile/utils/form-schema.ts`).
 - Funding may use any wallet that Core has verified on the canonical account.
   The funding selector renders only assets Core marks enabled; disabled future
