@@ -2,7 +2,7 @@
 
 ## Purpose
 
-All Next.js application code for authentication, public transparency, protected
+All Next.js application code for authentication, public network transparency, protected
 console pages, same-origin Grid proxies, and shared UI.
 
 ## Ownership
@@ -19,8 +19,8 @@ console pages, same-origin Grid proxies, and shared UI.
 - Browser code calls same-origin `/api` routes; the bounded Console service key
   stays in server env and short-lived Core user tokens stay in the encrypted
   Auth.js JWT and route-handler code.
-- `proxy.ts` protects `/dashboard/:path*`. Public payout transparency remains
-  outside that matcher.
+- `proxy.ts` protects `/dashboard/:path*`. Public payout and network status
+  remain outside that matcher.
 - There is no application database client in `src`; Grid core owns accounts,
   keys, usage, workers, validator scorecards, and payouts.
 - Preserve loading, empty, degraded-upstream, and unauthorized states across

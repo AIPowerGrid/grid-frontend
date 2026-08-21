@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -112,14 +113,19 @@ export default function PayoutsView({
           </p>
         </div>
       ) : (
-        <header className='space-y-2'>
-          <h1 className='text-2xl font-semibold tracking-tight'>
-            Worker Payouts
-          </h1>
-          <p className='text-sm text-muted-foreground'>
-            Every AIPG paid to grid workers is an on-chain transfer on Base.
-            This is the public ledger — verify any row on BaseScan.
-          </p>
+        <header className='flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between'>
+          <div className='space-y-2'>
+            <h1 className='text-2xl font-semibold tracking-tight'>
+              Worker Payouts
+            </h1>
+            <p className='text-sm text-muted-foreground'>
+              Every AIPG paid to grid workers is an on-chain transfer on Base.
+              This is the public ledger — verify any row on BaseScan.
+            </p>
+          </div>
+          <Button asChild variant='outline' size='sm'>
+            <Link href='/network'>Network status</Link>
+          </Button>
         </header>
       )}
 

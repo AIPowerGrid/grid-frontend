@@ -3,7 +3,7 @@
 ## Purpose
 
 Next.js App Router surfaces for sign-in, authenticated account/worker controls,
-public payout transparency, and the hosted API reference.
+public network/payout transparency, and the hosted API reference.
 
 ## Ownership
 
@@ -13,6 +13,9 @@ public payout transparency, and the hosted API reference.
 - `dashboard/` - protected account pages: overview, API keys, credits/funding,
   usage, rewards, settings, validators, and workers.
 - `payouts/` - public worker payout transparency and live redacted jobs.
+- `network/` - public whole-network status: worker/model capacity, validator
+  aggregates, charging mode, payout totals, incidents, and explicit
+  decentralization advisories.
 - `api-doc/` - Scalar API reference backed by `public/swagger.json`.
 - `api/` - server route handlers, owned by `api/AGENTS.md`.
 - Root layout/globals - metadata, providers, fonts, and global styling.
@@ -21,8 +24,8 @@ public payout transparency, and the hosted API reference.
 
 - `/dashboard/:path*` requires Auth.js through `src/proxy.ts`.
 - Public pages must not depend on a session or expose account IDs/private job
-  data. Public payout data contains only already-public wallets/transactions and
-  aggregate fields supplied by core.
+  data. Public payout data contains only already-public wallets/transactions;
+  network status contains only Core-supplied redacted aggregates.
 - `public/swagger.json` is a generated/snapshotted API contract. Refresh it from
   `grid-core`'s `grid_api.main:app` when endpoints change; never hand-document
   old Horde routes in the UI. The schema paths already include `/v1`, so the
@@ -38,7 +41,8 @@ public payout transparency, and the hosted API reference.
 
 - `pnpm lint`
 - `pnpm build`
-- Manually verify unauthenticated dashboard redirect and public `/payouts`.
+- Manually verify unauthenticated dashboard redirect and public `/payouts` and
+  `/network`.
 
 ## Child DOX Index
 

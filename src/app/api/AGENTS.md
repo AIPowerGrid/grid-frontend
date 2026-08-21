@@ -28,8 +28,9 @@ browser JavaScript.
   `/v1/account/jobs`.
 - `account/payout-preference/` — set payout asset / AIPG slice via the
   session-gated `/v1/account/payout-preference`.
-- `payouts/public/` and `jobs/recent/` — PUBLIC no-auth proxies for the
-  transparency page (aggregate payouts + the redacted live-jobs feed).
+- `payouts/public/`, `jobs/recent/`, and `network/status/` — PUBLIC no-auth
+  proxies for aggregate payouts, the redacted live-jobs feed, and the
+  privacy-safe whole-network status contract.
 - `openai/v1/chat/completions/`, `openai/v1/completions/`, `openai/v1/models/` —
   OpenAI-compatible passthrough; `chat/completions` streams SSE straight through.
 - `generate-text/`, `generate-image/` — dashboard playground generation proxies.
