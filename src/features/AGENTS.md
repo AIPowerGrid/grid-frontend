@@ -25,6 +25,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   Preview and assignment-bound evidence must be visually distinct. The page
   separates probe completion, accepted signed evidence, worker pass, quorum,
   and finalization, and shows aggregate validator liveness without identities.
+  Network health may show bounded agreement/dispute rates, worker/model
+  coverage, and software-version cohorts. Keep registered, participating, and
+  independently verified operator counts visibly separate.
   Shared 3-of-5 groups prove distinct registrations, not independent operators,
   and have no live routing, payout, reward, strike, or slash authority.
 - `settings/` — settings view + username-change section.

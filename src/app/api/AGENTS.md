@@ -38,7 +38,8 @@ browser JavaScript.
 - `validator/scorecards/` and `validator/assignments/health/` — authed proxies
   for aggregate validator evidence and assignment workflow health;
   informational only, no raw evidence, independent-quorum claim, or economic
-  effects.
+  effects. Preserve bounded `limit` and `since_hours` filters so the console's
+  selected evidence window matches Core's aggregate health window.
 - `sentry/workerRewards/[address]/` — wallet earnings via grid v1 (validates `0x` address).
 
 ## Local Contracts

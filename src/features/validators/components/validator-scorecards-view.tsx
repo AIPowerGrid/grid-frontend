@@ -112,6 +112,28 @@ interface AssignmentHealthResponse {
     participating_24h: number;
     heartbeat_fresh_seconds: number;
   };
+  network?: {
+    window_hours: number;
+    assignments_completed: number;
+    groups_with_evidence: number;
+    authoritative_votes: number;
+    agreement_rate: number | null;
+    disputed_rate: number | null;
+    disputed_groups: number;
+    coverage: {
+      workers: number;
+      models: number;
+    };
+    software_versions: {
+      version: string;
+      validators: number;
+    }[];
+    operator_independence: {
+      verified: number;
+      proven: boolean;
+      status: string;
+    };
+  };
   probe: Record<string, number>;
   recent: ProbeGroupItem[];
   economic_effect: string;
@@ -137,6 +159,10 @@ const AUTHORITY_FILTERS: { label: string; value: AuthorityMode }[] = [
 
 function pct(value: number) {
   return `${Math.round(value * 100)}%`;
+}
+
+function fmtPct(value: number | null | undefined) {
+  return value === null || value === undefined ? '—' : pct(value);
 }
 
 function fmtNumber(value: number | null | undefined, digits = 0) {
@@ -281,9 +307,10 @@ export default function ValidatorScorecardsView() {
             `/api/validator/scorecards?limit=100&since_hours=${windowHours}&authority=${authority}`,
             { cache: 'no-store' }
           ),
-          fetch('/api/validator/assignments/health?limit=25', {
-            cache: 'no-store'
-          })
+          fetch(
+            `/api/validator/assignments/health?limit=25&since_hours=${windowHours}`,
+            { cache: 'no-store' }
+          )
         ]);
         if (!res.ok) {
           if (res.status === 404) {
@@ -625,11 +652,11 @@ export default function ValidatorScorecardsView() {
         />
       </div>
 
-      <div className='grid gap-4 sm:grid-cols-3'>
+      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
         <StatCard
-          label='Active validators'
+          label='Registered active'
           value={showStats ? (health?.validators?.active ?? 0) : '—'}
-          hint='Registered and enabled'
+          hint='Accounts, not independence proof'
           icon={Users}
         />
         <StatCard
@@ -644,7 +671,68 @@ export default function ValidatorScorecardsView() {
           hint='Distinct evidence signers'
           icon={ShieldCheck}
         />
+        <StatCard
+          label='Verified independent'
+          value={
+            showStats
+              ? (health?.network?.operator_independence.verified ?? 0)
+              : '—'
+          }
+          hint='External operator review pending'
+          icon={ShieldAlert}
+        />
       </div>
+
+      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+        <StatCard
+          label='Agreement rate'
+          value={showStats ? fmtPct(health?.network?.agreement_rate) : '—'}
+          hint='Votes matching group plurality'
+          icon={Gauge}
+        />
+        <StatCard
+          label='Dispute rate'
+          value={showStats ? fmtPct(health?.network?.disputed_rate) : '—'}
+          hint='Evidence groups with dissent'
+          icon={ShieldAlert}
+        />
+        <StatCard
+          label='Worker coverage'
+          value={showStats ? (health?.network?.coverage.workers ?? 0) : '—'}
+          hint={`${health?.network?.window_hours ?? windowHours}h evidence window`}
+          icon={Activity}
+        />
+        <StatCard
+          label='Model coverage'
+          value={showStats ? (health?.network?.coverage.models ?? 0) : '—'}
+          hint={`${health?.network?.authoritative_votes ?? 0} signed votes`}
+          icon={GitBranch}
+        />
+      </div>
+
+      <Card>
+        <CardContent className='space-y-3 p-5'>
+          <div>
+            <h2 className='font-semibold'>Validator Software</h2>
+            <p className='text-sm text-muted-foreground'>
+              Versions reported by active validators with fresh heartbeats.
+            </p>
+          </div>
+          <div className='flex flex-wrap gap-2'>
+            {health?.network?.software_versions.length ? (
+              health.network.software_versions.map((item) => (
+                <Badge key={item.version} variant='outline'>
+                  {item.version} · {item.validators}
+                </Badge>
+              ))
+            ) : (
+              <span className='text-sm text-muted-foreground'>
+                No fresh validator versions reported.
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className='space-y-4 p-5'>

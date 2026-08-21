@@ -34,8 +34,15 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const limit = boundedInt(url.searchParams.get('limit'), 25, 1, 100);
+  const sinceHours = boundedInt(
+    url.searchParams.get('since_hours'),
+    24,
+    1,
+    24 * 90
+  );
   const upstream = new URL('/v1/validator/assignments/health', GRID_API_BASE);
   upstream.searchParams.set('limit', String(limit));
+  upstream.searchParams.set('since_hours', String(sinceHours));
 
   try {
     const res = await fetch(upstream, {
