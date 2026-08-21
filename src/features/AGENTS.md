@@ -20,8 +20,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
 - `validators/` — validator onboarding plus aggregate evidence scorecards and
   assignment health. Onboarding requires a linked wallet, issues a one-time
-  validator-purpose key with the exact validator scopes, and exposes downloads
-  only after the matching Core migration and verified preview release are live.
+  validator-purpose key with the exact validator scopes, and links to the public
+  release gate, which exposes downloads only after the matching Core migration
+  and verified preview release are live.
   Preview and assignment-bound evidence must be visually distinct. The page
   separates probe completion, accepted signed evidence, worker pass, quorum,
   and finalization, and shows aggregate validator liveness without identities.
