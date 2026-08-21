@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Terminal,
   Timer,
+  Users,
   WalletCards
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -68,21 +69,20 @@ interface ScorecardsResponse {
   error?: string;
 }
 
-interface AssignmentItem {
-  assignment_id: string;
+interface ProbeGroupItem {
+  probe_group_id: string;
   target_worker_id: string;
-  target_worker_name: string;
   model: string;
   modality: string;
   capability: string;
-  canary_kind: string;
-  status: string;
   quorum_status: 'pending' | 'accepted' | 'disputed' | 'finalized' | string;
   quorum_outcome: string | null;
-  probe_status: string;
+  assigned_validators: number;
+  attested_validators: number;
+  threshold: number;
+  target_validators: number;
   created: string | null;
   expires: string | null;
-  probed: string | null;
   finalized: string | null;
 }
 
@@ -93,8 +93,27 @@ interface AssignmentHealthResponse {
     disputed: number;
     finalized: number;
   };
+  quorum_policy?: {
+    threshold: number;
+    target_validators: number;
+    distinct_registered_validators: boolean;
+    operator_independence_proven: boolean;
+  };
+  stages?: {
+    probes_completed: number;
+    authoritative_evidence_accepted: number;
+    workers_passed: number;
+    quorum_reached: number;
+    groups_finalized: number;
+  };
+  validators?: {
+    active: number;
+    heartbeat_fresh: number;
+    participating_24h: number;
+    heartbeat_fresh_seconds: number;
+  };
   probe: Record<string, number>;
-  recent: AssignmentItem[];
+  recent: ProbeGroupItem[];
   economic_effect: string;
   error?: string;
 }
@@ -344,7 +363,7 @@ export default function ValidatorScorecardsView() {
     <div className='mx-auto w-full max-w-6xl space-y-6'>
       <PageHeader
         title='Validator Evidence'
-        description='Independent validator observations across Grid workers and models.'
+        description='Registered validator observations across Grid workers and models.'
         actions={
           <div className='flex flex-wrap items-center gap-2'>
             <div className='flex rounded-md border bg-background p-1'>
@@ -393,8 +412,10 @@ export default function ValidatorScorecardsView() {
           These scorecards summarize validator attestations only. They do not
           change routing, payouts, strikes, slashing, credits, or ledger rows.
           Authoritative rows require a Grid assignment id, nonce, and probe
-          evidence hash. Shared multi-validator quorum, validator staking, and
-          validator rewards are not live.
+          evidence hash. Shared 3-of-5 quorum is preview-only and has no
+          economic authority. Staking and validator rewards are not live, and
+          distinct registrations do not by themselves prove independent
+          operators.
         </AlertDescription>
       </Alert>
 
@@ -550,19 +571,77 @@ export default function ValidatorScorecardsView() {
         <StatCard
           label='Accepted evidence'
           value={showStats ? (health?.quorum.accepted ?? 0) : '—'}
-          hint='Single assignment accepted'
+          hint='Groups meeting threshold'
           icon={CheckCircle2}
         />
         <StatCard
           label='Disputed evidence'
           value={showStats ? (health?.quorum.disputed ?? 0) : '—'}
-          hint='Probe and attestation differ'
+          hint='Validators disagree'
           icon={ShieldAlert}
         />
         <StatCard
           label='Finalized'
           value={showStats ? (health?.quorum.finalized ?? 0) : '—'}
-          hint='Closed assignment windows'
+          hint='Closed group windows'
+          icon={ShieldCheck}
+        />
+      </div>
+
+      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-5'>
+        <StatCard
+          label='Probes completed'
+          value={showStats ? (health?.stages?.probes_completed ?? 0) : '—'}
+          hint='Targeted jobs returned'
+          icon={Activity}
+        />
+        <StatCard
+          label='Evidence accepted'
+          value={
+            showStats
+              ? (health?.stages?.authoritative_evidence_accepted ?? 0)
+              : '—'
+          }
+          hint='Bound signed votes'
+          icon={CheckCircle2}
+        />
+        <StatCard
+          label='Workers passed'
+          value={showStats ? (health?.stages?.workers_passed ?? 0) : '—'}
+          hint='Healthy quorum outcome'
+          icon={ShieldCheck}
+        />
+        <StatCard
+          label='Quorum reached'
+          value={showStats ? (health?.stages?.quorum_reached ?? 0) : '—'}
+          hint={`${health?.quorum_policy?.threshold ?? 3}-of-${health?.quorum_policy?.target_validators ?? 5} agreement`}
+          icon={GitBranch}
+        />
+        <StatCard
+          label='Groups finalized'
+          value={showStats ? (health?.stages?.groups_finalized ?? 0) : '—'}
+          hint='Expired and closed'
+          icon={ShieldCheck}
+        />
+      </div>
+
+      <div className='grid gap-4 sm:grid-cols-3'>
+        <StatCard
+          label='Active validators'
+          value={showStats ? (health?.validators?.active ?? 0) : '—'}
+          hint='Registered and enabled'
+          icon={Users}
+        />
+        <StatCard
+          label='Fresh heartbeats'
+          value={showStats ? (health?.validators?.heartbeat_fresh ?? 0) : '—'}
+          hint='Recently online'
+          icon={Activity}
+        />
+        <StatCard
+          label='Participating (24h)'
+          value={showStats ? (health?.validators?.participating_24h ?? 0) : '—'}
+          hint='Distinct evidence signers'
           icon={ShieldCheck}
         />
       </div>
@@ -571,10 +650,10 @@ export default function ValidatorScorecardsView() {
         <CardContent className='space-y-4 p-5'>
           <div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
             <div>
-              <h2 className='font-semibold'>Assignment Health</h2>
+              <h2 className='font-semibold'>Probe Group Health</h2>
               <p className='text-sm text-muted-foreground'>
-                Recent Grid-issued assignments and their evidence state. This is
-                not shared multi-validator quorum.
+                Validators receive separate nonces for the same target and
+                challenge. One registered validator gets one vote per group.
               </p>
             </div>
             <Badge variant='outline'>
@@ -593,38 +672,45 @@ export default function ValidatorScorecardsView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Assignment</TableHead>
+                    <TableHead>Probe group</TableHead>
                     <TableHead>Target</TableHead>
-                    <TableHead>Probe</TableHead>
-                    <TableHead>Evidence</TableHead>
+                    <TableHead>Validators</TableHead>
+                    <TableHead>Quorum</TableHead>
                     <TableHead className='text-right'>Expires</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {health.recent.map((item) => (
-                    <TableRow key={item.assignment_id}>
+                    <TableRow key={item.probe_group_id}>
                       <TableCell className='min-w-56'>
                         <div className='space-y-1'>
                           <div className='font-mono text-xs'>
-                            {item.assignment_id}
+                            {item.probe_group_id}
                           </div>
                           <div className='flex flex-wrap gap-1'>
                             <Badge variant='secondary'>{item.modality}</Badge>
-                            <Badge variant='outline'>{item.canary_kind}</Badge>
+                            <Badge variant='outline'>{item.capability}</Badge>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className='min-w-52'>
                         <div className='space-y-1'>
-                          <div className='font-medium'>
-                            {item.target_worker_name}
+                          <div className='font-mono text-xs'>
+                            {item.target_worker_id}
                           </div>
                           <div className='line-clamp-1 text-xs text-muted-foreground'>
                             {item.model}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{item.probe_status}</TableCell>
+                      <TableCell className='whitespace-nowrap tabular-nums'>
+                        {item.attested_validators} attested /{' '}
+                        {item.assigned_validators} assigned
+                        <div className='text-xs text-muted-foreground'>
+                          threshold {item.threshold} · target{' '}
+                          {item.target_validators}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className='flex flex-wrap gap-1'>
                           {quorumBadge(item.quorum_status)}
@@ -645,7 +731,7 @@ export default function ValidatorScorecardsView() {
             </div>
           ) : (
             <div className='rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground'>
-              No validator assignments issued yet.
+              No shared validator probe groups issued yet.
             </div>
           )}
         </CardContent>
