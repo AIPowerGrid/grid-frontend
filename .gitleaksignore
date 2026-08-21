@@ -1,0 +1,5 @@
+# Reviewed 2026-08-21. Exact historical fingerprints only.
+#
+# This is a retired developer-path disclosure, not credential material. This
+# file must never contain a broad rule, path, or regex exclusion.
+428dd31428e1290a10a8d76d26c9af8dfa8b7dda:AGENTS.md:aipg-local-dev-path:62
