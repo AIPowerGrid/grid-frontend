@@ -31,6 +31,10 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   independently verified operator counts visibly separate. A probe group's
   distinct-registration quorum and reviewed independent-operator quorum are
   separate signals; never present the former as the latter.
+  Scorecard rows must render Core's evidence dimension (`availability`,
+  `protocol_conformance`, `capability`, `quality`, or `fidelity`) and visibly
+  mark generated canaries as not quality-rated. Never turn `avg_score` from a
+  protocol/capability canary into a model-quality claim.
   Shared 3-of-5 groups prove distinct registrations, not independent operators,
   and have no live routing, payout, reward, strike, or slash authority.
 - `settings/` — settings view + username-change section.

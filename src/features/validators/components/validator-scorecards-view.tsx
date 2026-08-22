@@ -36,6 +36,12 @@ import {
 
 type WindowHours = 24 | 168 | 720;
 type AuthorityMode = 'all' | 'authoritative' | 'preview';
+type ScoreDimension =
+  | 'availability'
+  | 'protocol_conformance'
+  | 'capability'
+  | 'quality'
+  | 'fidelity';
 
 interface ScorecardItem {
   subject_type: 'worker' | 'model' | string;
@@ -44,6 +50,9 @@ interface ScorecardItem {
   model: string | null;
   modality: string | null;
   capability: string | null;
+  score_dimension?: ScoreDimension | string;
+  quality_eligible?: boolean;
+  quality_score?: number | null;
   total: number;
   healthy: number;
   slow: number;
@@ -228,6 +237,19 @@ function quorumBadge(value: string) {
     return <Badge variant='destructive'>Disputed</Badge>;
   if (value === 'finalized') return <Badge variant='outline'>Finalized</Badge>;
   return <Badge variant='secondary'>Pending</Badge>;
+}
+
+function scoreDimensionBadge(value: string | undefined) {
+  const labels: Record<string, string> = {
+    availability: 'Availability',
+    protocol_conformance: 'Protocol',
+    capability: 'Capability',
+    quality: 'Quality',
+    fidelity: 'Fidelity'
+  };
+  return (
+    <Badge variant='outline'>{labels[value ?? ''] ?? 'Unclassified'}</Badge>
+  );
 }
 
 export default function ValidatorScorecardsView() {
@@ -447,7 +469,8 @@ export default function ValidatorScorecardsView() {
           economic authority. Staking and validator rewards are not live, and
           distinct registrations do not by themselves prove independent
           operators. Verified operator counts require an expiring external
-          review and group common-control registrations together.
+          review and group common-control registrations together. Protocol
+          conformance is not a general model-quality score.
         </AlertDescription>
       </Alert>
 
@@ -755,8 +778,9 @@ export default function ValidatorScorecardsView() {
             <div>
               <h2 className='font-semibold'>Probe Group Health</h2>
               <p className='text-sm text-muted-foreground'>
-                Validators receive separate nonces for the same target and
-                challenge. One registered validator gets one vote per group.
+                Validators receive separate nonces and challenge instances for
+                the same target and capability lane. One registered validator
+                gets one vote per group.
               </p>
             </div>
             <Badge variant='outline'>
@@ -866,8 +890,8 @@ export default function ValidatorScorecardsView() {
             <div>
               <h2 className='font-semibold'>Scorecards</h2>
               <p className='text-sm text-muted-foreground'>
-                Grouped by worker/model when validators can attribute the
-                evidence; model-routed probes appear as model subjects.
+                Evidence is separated by protocol, capability, quality, and
+                fidelity instead of presenting every passing probe as quality.
               </p>
             </div>
             <Badge variant='outline'>
@@ -889,6 +913,7 @@ export default function ValidatorScorecardsView() {
                     <TableHead>Subject</TableHead>
                     <TableHead>Model</TableHead>
                     <TableHead>Authority</TableHead>
+                    <TableHead>Evidence type</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead className='text-right'>Total</TableHead>
                     <TableHead className='text-right'>Slow</TableHead>
@@ -927,6 +952,19 @@ export default function ValidatorScorecardsView() {
                         <div className='flex flex-wrap gap-1'>
                           {authorityBadge(item.authority)}
                           {quorumBadge(item.quorum_status)}
+                        </div>
+                      </TableCell>
+                      <TableCell className='min-w-36'>
+                        <div className='space-y-1'>
+                          {scoreDimensionBadge(item.score_dimension)}
+                          <div className='text-xs text-muted-foreground'>
+                            {item.quality_eligible
+                              ? item.quality_score === null ||
+                                item.quality_score === undefined
+                                ? 'Quality pending'
+                                : `${Math.round(item.quality_score * 100)}% quality`
+                              : 'Not quality rated'}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className='min-w-44'>
