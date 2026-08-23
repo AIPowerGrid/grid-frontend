@@ -35,6 +35,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   `protocol_conformance`, `capability`, `quality`, or `fidelity`) and visibly
   mark generated canaries as not quality-rated. Never turn `avg_score` from a
   protocol/capability canary into a model-quality claim.
+  The validator health view also renders Core's paid-audit policy and current
+  UTC-day den budget. Keep target-worker compensation visibly separate from
+  validator rewards and evidence authority; never infer enabled state locally.
   Shared 3-of-5 groups prove distinct registrations, not independent operators,
   and have no live routing, payout, reward, strike, or slash authority.
 - `settings/` — settings view + username-change section.
