@@ -28,7 +28,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   and finalization, and shows aggregate validator liveness without identities.
   Network health may show bounded agreement/dispute rates, worker/model
   coverage, and software-version cohorts. Keep registered, participating, and
-  independently verified operator counts visibly separate.
+  independently verified operator counts visibly separate. A probe group's
+  distinct-registration quorum and reviewed independent-operator quorum are
+  separate signals; never present the former as the latter.
   Shared 3-of-5 groups prove distinct registrations, not independent operators,
   and have no live routing, payout, reward, strike, or slash authority.
 - `settings/` — settings view + username-change section.

@@ -79,6 +79,8 @@ interface ProbeGroupItem {
   quorum_outcome: string | null;
   assigned_validators: number;
   attested_validators: number;
+  independent_attested_operators?: number;
+  independent_quorum_reached?: boolean;
   threshold: number;
   target_validators: number;
   created: string | null;
@@ -130,8 +132,10 @@ interface AssignmentHealthResponse {
     }[];
     operator_independence: {
       verified: number;
+      participating?: number;
       proven: boolean;
       status: string;
+      minimum?: number;
     };
   };
   probe: Record<string, number>;
@@ -442,7 +446,8 @@ export default function ValidatorScorecardsView() {
           evidence hash. Shared 3-of-5 quorum is preview-only and has no
           economic authority. Staking and validator rewards are not live, and
           distinct registrations do not by themselves prove independent
-          operators.
+          operators. Verified operator counts require an expiring external
+          review and group common-control registrations together.
         </AlertDescription>
       </Alert>
 
@@ -680,8 +685,16 @@ export default function ValidatorScorecardsView() {
               ? (health?.network?.operator_independence.verified ?? 0)
               : '—'
           }
-          hint='External operator review pending'
-          icon={ShieldAlert}
+          hint={
+            health?.network?.operator_independence.proven
+              ? `${health.network.operator_independence.participating ?? 0} participating in this window`
+              : `Need ${health?.network?.operator_independence.minimum ?? 3} reviewed operators`
+          }
+          icon={
+            health?.network?.operator_independence.proven
+              ? ShieldCheck
+              : ShieldAlert
+          }
         />
       </div>
 
@@ -800,6 +813,11 @@ export default function ValidatorScorecardsView() {
                           threshold {item.threshold} · target{' '}
                           {item.target_validators}
                         </div>
+                        <div className='text-xs text-muted-foreground'>
+                          {item.independent_attested_operators ?? 0} independent
+                          {' / '}
+                          {item.threshold} required
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className='flex flex-wrap gap-1'>
@@ -809,6 +827,21 @@ export default function ValidatorScorecardsView() {
                               {item.quorum_outcome}
                             </Badge>
                           ) : null}
+                          <Badge
+                            variant={
+                              item.independent_quorum_reached
+                                ? 'default'
+                                : 'outline'
+                            }
+                          >
+                            {item.independent_quorum_reached
+                              ? 'independent quorum'
+                              : ['accepted', 'finalized'].includes(
+                                    item.quorum_status
+                                  )
+                                ? 'registration quorum only'
+                                : 'independence pending'}
+                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell className='whitespace-nowrap text-right'>

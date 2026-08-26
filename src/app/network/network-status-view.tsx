@@ -42,6 +42,7 @@ interface ValidatorStatus {
   heartbeat_fresh: number;
   participating: number;
   verified_independent: number;
+  participating_independent?: number;
   independence_proven: boolean;
   quorum: Record<'pending' | 'accepted' | 'disputed' | 'finalized', number>;
   assignments_completed: number;
@@ -347,7 +348,11 @@ export default function NetworkStatusView() {
               <Metric
                 label='Verified independent'
                 value={data.validators?.verified_independent ?? 0}
-                detail='External review not yet proven'
+                detail={
+                  data.validators?.independence_proven
+                    ? `${data.validators.participating_independent ?? 0} participating in this window`
+                    : 'Reviewed operator quorum not yet proven'
+                }
                 icon={ShieldCheck}
               />
               <Metric
