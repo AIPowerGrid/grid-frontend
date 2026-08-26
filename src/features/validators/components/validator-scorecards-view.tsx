@@ -36,6 +36,12 @@ import {
 
 type WindowHours = 24 | 168 | 720;
 type AuthorityMode = 'all' | 'authoritative' | 'preview';
+type ScoreDimension =
+  | 'availability'
+  | 'protocol_conformance'
+  | 'capability'
+  | 'quality'
+  | 'fidelity';
 
 interface ScorecardItem {
   subject_type: 'worker' | 'model' | string;
@@ -44,6 +50,9 @@ interface ScorecardItem {
   model: string | null;
   modality: string | null;
   capability: string | null;
+  score_dimension?: ScoreDimension | string;
+  quality_eligible?: boolean;
+  quality_score?: number | null;
   total: number;
   healthy: number;
   slow: number;
@@ -138,6 +147,26 @@ interface AssignmentHealthResponse {
       minimum?: number;
     };
   };
+  paid_audit?: {
+    policy: {
+      requested: boolean;
+      enabled: boolean;
+      reasons: string[];
+      reviewed_wallet_count: number;
+      daily_den: number;
+      max_den_per_job: number;
+      worker_compensation: 'none' | 'audit_budget' | string;
+      validator_rewards: boolean;
+      evidence_economic_authority: boolean;
+    };
+    budget: {
+      budget_day: string;
+      limit_den: number;
+      held_den: number;
+      spent_den: number;
+      remaining_den: number;
+    } | null;
+  };
   probe: Record<string, number>;
   recent: ProbeGroupItem[];
   economic_effect: string;
@@ -228,6 +257,19 @@ function quorumBadge(value: string) {
     return <Badge variant='destructive'>Disputed</Badge>;
   if (value === 'finalized') return <Badge variant='outline'>Finalized</Badge>;
   return <Badge variant='secondary'>Pending</Badge>;
+}
+
+function scoreDimensionBadge(value: string | undefined) {
+  const labels: Record<string, string> = {
+    availability: 'Availability',
+    protocol_conformance: 'Protocol',
+    capability: 'Capability',
+    quality: 'Quality',
+    fidelity: 'Fidelity'
+  };
+  return (
+    <Badge variant='outline'>{labels[value ?? ''] ?? 'Unclassified'}</Badge>
+  );
 }
 
 export default function ValidatorScorecardsView() {
@@ -441,15 +483,87 @@ export default function ValidatorScorecardsView() {
         <AlertTitle>Preview evidence, no rewards yet</AlertTitle>
         <AlertDescription>
           These scorecards summarize validator attestations only. They do not
-          change routing, payouts, strikes, slashing, credits, or ledger rows.
-          Authoritative rows require a Grid assignment id, nonce, and probe
-          evidence hash. Shared 3-of-5 quorum is preview-only and has no
+          change routing, validator rewards, strikes, slashing, or credits. A
+          reviewed paid-audit pilot may compensate the target worker from a
+          separate bounded network den budget; that does not increase evidence
+          authority. Authoritative rows require a Grid assignment id, nonce, and
+          probe evidence hash. Shared 3-of-5 quorum is preview-only and has no
           economic authority. Staking and validator rewards are not live, and
           distinct registrations do not by themselves prove independent
           operators. Verified operator counts require an expiring external
-          review and group common-control registrations together.
+          review and group common-control registrations together. Protocol
+          conformance is not a general model-quality score.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardContent className='grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center'>
+          <div className='space-y-2'>
+            <div className='flex flex-wrap items-center gap-2'>
+              <h2 className='font-semibold'>Audit worker compensation</h2>
+              <Badge
+                variant={
+                  health?.paid_audit?.policy.enabled
+                    ? 'default'
+                    : health?.paid_audit?.policy.requested
+                      ? 'destructive'
+                      : 'secondary'
+                }
+              >
+                {health?.paid_audit?.policy.enabled
+                  ? 'Pilot enabled'
+                  : health?.paid_audit?.policy.requested
+                    ? 'Configuration blocked'
+                    : 'Dark'}
+              </Badge>
+            </div>
+            <p className='text-sm text-muted-foreground'>
+              Target-worker den only. Validator rewards, routing authority, and
+              slashing remain off.
+            </p>
+            {health?.paid_audit?.policy.reasons.length ? (
+              <p className='text-sm text-destructive'>
+                {health.paid_audit.policy.reasons.join(' · ')}
+              </p>
+            ) : null}
+          </div>
+          <div className='grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4 md:grid-cols-2'>
+            <div>
+              <div className='text-muted-foreground'>Reviewed wallets</div>
+              <div className='font-medium tabular-nums'>
+                {fmtNumber(
+                  health?.paid_audit?.policy.reviewed_wallet_count ?? 0
+                )}
+              </div>
+            </div>
+            <div>
+              <div className='text-muted-foreground'>Per-job cap</div>
+              <div className='font-medium tabular-nums'>
+                {fmtNumber(health?.paid_audit?.policy.max_den_per_job ?? 0, 2)}{' '}
+                den
+              </div>
+            </div>
+            <div>
+              <div className='text-muted-foreground'>Spent today</div>
+              <div className='font-medium tabular-nums'>
+                {fmtNumber(health?.paid_audit?.budget?.spent_den ?? 0, 2)} den
+              </div>
+            </div>
+            <div>
+              <div className='text-muted-foreground'>Remaining</div>
+              <div className='font-medium tabular-nums'>
+                {fmtNumber(
+                  health?.paid_audit?.budget?.remaining_den ??
+                    health?.paid_audit?.policy.daily_den ??
+                    0,
+                  2
+                )}{' '}
+                den
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className='space-y-6 p-5'>
@@ -755,8 +869,9 @@ export default function ValidatorScorecardsView() {
             <div>
               <h2 className='font-semibold'>Probe Group Health</h2>
               <p className='text-sm text-muted-foreground'>
-                Validators receive separate nonces for the same target and
-                challenge. One registered validator gets one vote per group.
+                Validators receive separate nonces and challenge instances for
+                the same target and capability lane. One registered validator
+                gets one vote per group.
               </p>
             </div>
             <Badge variant='outline'>
@@ -866,8 +981,8 @@ export default function ValidatorScorecardsView() {
             <div>
               <h2 className='font-semibold'>Scorecards</h2>
               <p className='text-sm text-muted-foreground'>
-                Grouped by worker/model when validators can attribute the
-                evidence; model-routed probes appear as model subjects.
+                Evidence is separated by protocol, capability, quality, and
+                fidelity instead of presenting every passing probe as quality.
               </p>
             </div>
             <Badge variant='outline'>
@@ -889,6 +1004,7 @@ export default function ValidatorScorecardsView() {
                     <TableHead>Subject</TableHead>
                     <TableHead>Model</TableHead>
                     <TableHead>Authority</TableHead>
+                    <TableHead>Evidence type</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead className='text-right'>Total</TableHead>
                     <TableHead className='text-right'>Slow</TableHead>
@@ -927,6 +1043,19 @@ export default function ValidatorScorecardsView() {
                         <div className='flex flex-wrap gap-1'>
                           {authorityBadge(item.authority)}
                           {quorumBadge(item.quorum_status)}
+                        </div>
+                      </TableCell>
+                      <TableCell className='min-w-36'>
+                        <div className='space-y-1'>
+                          {scoreDimensionBadge(item.score_dimension)}
+                          <div className='text-xs text-muted-foreground'>
+                            {item.quality_eligible
+                              ? item.quality_score === null ||
+                                item.quality_score === undefined
+                                ? 'Quality pending'
+                                : `${Math.round(item.quality_score * 100)}% quality`
+                              : 'Not quality rated'}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className='min-w-44'>
