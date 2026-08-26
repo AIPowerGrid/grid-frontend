@@ -15,7 +15,8 @@ public network/payout transparency, and the hosted API reference.
 - `payouts/` - public worker payout transparency and live redacted jobs.
 - `network/` - public whole-network status: worker/model capacity, validator
   aggregates, charging mode, payout totals, incidents, and explicit
-  decentralization advisories.
+  decentralization advisories. Validator status keeps registered,
+  independently verified, and recently participating operator counts distinct.
 - `api-doc/` - Scalar API reference backed by `public/swagger.json`.
 - `api/` - server route handlers, owned by `api/AGENTS.md`.
 - Root layout/globals - metadata, providers, fonts, and global styling.
