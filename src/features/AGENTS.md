@@ -19,10 +19,12 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   only Core's exact delegation message and locally confirms the recovered
   signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
 - `validators/` — validator onboarding plus aggregate evidence scorecards and
-  assignment health. Onboarding requires a linked wallet, issues a one-time
-  validator-purpose key with the exact validator scopes, and links to the public
-  release gate, which exposes downloads only after the matching Core migration
-  and verified preview release are live.
+  assignment health. Onboarding first installs the exact preview and prepares
+  the signing identity locally, then links only its public address, issues a
+  one-time validator-purpose key with the exact validator scopes, and completes
+  local initialization. The Console never generates, receives, or stores the
+  validator private key. The public release gate exposes downloads only after
+  the matching Core migration and verified preview release are live.
   Preview and assignment-bound evidence must be visually distinct. The page
   separates probe completion, accepted signed evidence, worker pass, quorum,
   and finalization, and shows aggregate validator liveness without identities.
