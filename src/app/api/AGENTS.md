@@ -24,6 +24,11 @@ browser JavaScript.
 - `worker-enrollments/[enrollmentId]/` — public safe-intent read plus
   session-gated prepare/approve proxies. Validate IDs, addresses, and signatures;
   never proxy manager poll secrets or candidate worker credentials to the browser.
+- `validator-pairings/[pairingId]/` and `approve/` - authenticated inspect and
+  approval of an existing node's optional account-visibility request. Owned by
+  `validator-pairings/AGENTS.md`, including shared transport rules.
+- `account/validators/` and `[validatorId]/unlink/` - private associated-node
+  listing and exact-pairing removal; use that same validator-pairing transport.
 - `account/jobs/` — operator trust view (my workers' jobs + den + proof) via
   `/v1/account/jobs`.
 - `account/payout-preference/` — set payout asset / AIPG slice via the
@@ -63,8 +68,9 @@ browser JavaScript.
 
 ## Verification
 
-—
+- `pnpm test:auth-smoke` and `pnpm test:validator-pairing` after `pnpm build`.
 
 ## Child DOX Index
 
-- None — leaf.
+- [validator-pairings/AGENTS.md](validator-pairings/AGENTS.md) - bounded private
+  account-pairing proxies and cross-origin protection.

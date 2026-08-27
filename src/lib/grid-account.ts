@@ -45,7 +45,10 @@ export async function getSessionToken(req: NextRequest): Promise<any | null> {
  *
  * Returns null only when there's no usable identity at all.
  */
-export async function resolveGridKey(token: any): Promise<string | null> {
+export async function resolveGridKey(
+  token: any,
+  signal?: AbortSignal
+): Promise<string | null> {
   const existing = (token?.gridAccessToken ?? token?.gridApiKey) as
     | string
     | undefined;
@@ -67,7 +70,9 @@ export async function resolveGridKey(token: any): Promise<string | null> {
       body: JSON.stringify({
         subject: providerId
       }),
-      cache: 'no-store'
+      cache: 'no-store',
+      redirect: 'error',
+      signal
     });
     if (!res.ok) return null;
     const data = await res.json();

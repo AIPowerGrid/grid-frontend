@@ -4,18 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   CheckCircle2,
-  Copy,
-  Download,
   Gauge,
   GitBranch,
-  KeyRound,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Terminal,
   Timer,
-  Users,
-  WalletCards
+  Users
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +28,8 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import ValidatorOnboarding from './validator-onboarding';
+import LinkedValidators from './linked-validators';
 
 type WindowHours = 24 | 168 | 720;
 type AuthorityMode = 'all' | 'authoritative' | 'preview';
@@ -173,11 +170,6 @@ interface AssignmentHealthResponse {
   error?: string;
 }
 
-interface AccountInfo {
-  account_id: string;
-  wallet: string | null;
-}
-
 const WINDOWS: { label: string; value: WindowHours }[] = [
   { label: '24h', value: 24 },
   { label: '7d', value: 168 },
@@ -280,68 +272,6 @@ export default function ValidatorScorecardsView() {
   const [health, setHealth] = useState<AssignmentHealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [account, setAccount] = useState<AccountInfo | null>(null);
-  const [accountLoading, setAccountLoading] = useState(true);
-  const [keyCreating, setKeyCreating] = useState(false);
-  const [validatorKey, setValidatorKey] = useState('');
-  const [keyCopied, setKeyCopied] = useState(false);
-  const [onboardingError, setOnboardingError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/account', { cache: 'no-store' })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Grid account unavailable');
-        return (await res.json()) as AccountInfo;
-      })
-      .then((next) => {
-        if (!cancelled) setAccount(next);
-      })
-      .catch(() => {
-        if (!cancelled)
-          setOnboardingError('Sign in again to prepare a validator.');
-      })
-      .finally(() => {
-        if (!cancelled) setAccountLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function createValidatorKey() {
-    setKeyCreating(true);
-    setOnboardingError('');
-    try {
-      const res = await fetch('/api/account/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          label: `validator-${new Date().toISOString().slice(0, 10)}`,
-          purpose: 'validator'
-        })
-      });
-      const body = await res.json();
-      if (!res.ok || !body?.api_key) {
-        throw new Error(body?.detail || body?.error || 'Key creation failed');
-      }
-      setValidatorKey(body.api_key);
-    } catch (err) {
-      setOnboardingError(
-        err instanceof Error ? err.message : 'Validator key creation failed'
-      );
-    } finally {
-      setKeyCreating(false);
-    }
-  }
-
-  async function copyValidatorKey() {
-    if (!validatorKey) return;
-    await navigator.clipboard.writeText(validatorKey);
-    setKeyCopied(true);
-    window.setTimeout(() => setKeyCopied(false), 1500);
-  }
-
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -478,6 +408,9 @@ export default function ValidatorScorecardsView() {
         }
       />
 
+      <ValidatorOnboarding />
+      <LinkedValidators />
+
       <Alert>
         <ShieldCheck className='h-4 w-4' />
         <AlertTitle>Preview evidence, no rewards yet</AlertTitle>
@@ -562,131 +495,6 @@ export default function ValidatorScorecardsView() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className='space-y-6 p-5'>
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
-            <div>
-              <h2 className='font-semibold'>Run a preview validator</h2>
-              <p className='mt-1 max-w-3xl text-sm text-muted-foreground'>
-                A CPU-only validator receives short-lived Grid assignments,
-                probes the assigned worker, and signs the resulting evidence.
-                Missing assignments fail closed; the node does not probe random
-                production traffic.
-              </p>
-            </div>
-            <Badge variant='outline'>Unsigned preview</Badge>
-          </div>
-
-          <div className='grid gap-px overflow-hidden rounded-md border bg-border sm:grid-cols-2 xl:grid-cols-4'>
-            <div className='space-y-3 bg-background p-5'>
-              <div className='flex items-center gap-2 font-medium'>
-                <Download className='h-4 w-4 text-emerald-500' />
-                1. Install and prepare
-              </div>
-              <p className='text-sm text-muted-foreground'>
-                Install the exact preview, then create the signing identity on
-                the validator machine. The private key is never sent here.
-              </p>
-              <Button asChild variant='outline' size='sm'>
-                <a href='https://aipowergrid.io/validate'>View downloads</a>
-              </Button>
-              <code className='block break-all rounded bg-muted px-3 py-2 text-xs'>
-                aipg-validator prepare-wallet
-              </code>
-            </div>
-
-            <div className='space-y-3 bg-background p-5'>
-              <div className='flex items-center gap-2 font-medium'>
-                <WalletCards className='h-4 w-4 text-orange-500' />
-                2. Link the public address
-              </div>
-              <p className='text-sm text-muted-foreground'>
-                Link the address printed by the validator. Never paste its
-                private key into the Console or send it to anyone.
-              </p>
-              {accountLoading ? (
-                <Skeleton className='h-9 w-full' />
-              ) : account?.wallet ? (
-                <code className='block break-all rounded bg-muted px-3 py-2 text-xs'>
-                  {account.wallet}
-                </code>
-              ) : (
-                <Button asChild variant='outline' size='sm'>
-                  <a href='/dashboard/settings'>Link wallet</a>
-                </Button>
-              )}
-            </div>
-
-            <div className='space-y-3 bg-background p-5'>
-              <div className='flex items-center gap-2 font-medium'>
-                <KeyRound className='h-4 w-4 text-sky-500' />
-                3. Create a validator key
-              </div>
-              <p className='text-sm text-muted-foreground'>
-                This key can only read assignments, probe, attest, and read
-                validator status. It cannot submit inference or manage funds.
-              </p>
-              <Button
-                type='button'
-                size='sm'
-                onClick={createValidatorKey}
-                disabled={
-                  keyCreating || !account?.wallet || Boolean(validatorKey)
-                }
-              >
-                {keyCreating
-                  ? 'Creating…'
-                  : validatorKey
-                    ? 'Key created'
-                    : 'Create key'}
-              </Button>
-            </div>
-
-            <div className='space-y-3 bg-background p-5'>
-              <div className='flex items-center gap-2 font-medium'>
-                <Terminal className='h-4 w-4 text-violet-500' />
-                4. Initialize and check
-              </div>
-              <p className='text-sm text-muted-foreground'>
-                Paste the one-time validator key into local setup, then verify
-                registration before leaving the node online.
-              </p>
-              <div className='space-y-1 text-xs'>
-                <code className='block'>aipg-validator init</code>
-                <code className='block'>aipg-validator check --no-probe</code>
-                <code className='block'>aipg-validator run</code>
-              </div>
-            </div>
-          </div>
-
-          {validatorKey ? (
-            <div className='space-y-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-4'>
-              <p className='text-sm font-medium text-emerald-600 dark:text-emerald-400'>
-                Copy this key now. Core stores only its hash.
-              </p>
-              <div className='flex flex-col gap-2 sm:flex-row'>
-                <code className='min-w-0 flex-1 overflow-x-auto rounded bg-background px-3 py-2 text-xs'>
-                  {validatorKey}
-                </code>
-                <Button
-                  type='button'
-                  variant='secondary'
-                  size='sm'
-                  onClick={copyValidatorKey}
-                >
-                  <Copy className='mr-2 h-4 w-4' />
-                  {keyCopied ? 'Copied' : 'Copy'}
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {onboardingError ? (
-            <p className='text-sm text-destructive'>{onboardingError}</p>
-          ) : null}
         </CardContent>
       </Card>
 

@@ -10,6 +10,9 @@ public network/payout transparency, and the hosted API reference.
 - `(auth)/(signin)/` - Google, GitHub, and wallet sign-in entry page.
 - `dashboard/connect-worker/[enrollmentId]/` - protected, short-lived worker
   delegation review and payout-wallet approval screen.
+- `dashboard/connect-validator/[pairingId]/` - protected, short-lived validator
+  account-visibility approval. No-referrer metadata/HTTP header and frame denial
+  protect the request URL and consent screen. Node confirmation remains local.
 - `dashboard/` - protected account pages: overview, API keys, credits/funding,
   usage, rewards, settings, validators, and workers.
 - `payouts/` - public worker payout transparency and live redacted jobs.

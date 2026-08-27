@@ -27,6 +27,10 @@ export function useBreadcrumbs() {
   const pathname = usePathname();
 
   const breadcrumbs = useMemo(() => {
+    // Pairing IDs are opaque handles, not useful navigation labels.
+    if (/^\/dashboard\/connect-validator\/vpa_[0-9a-f]{64}$/.test(pathname)) {
+      return [{ title: 'Link validator', link: pathname }];
+    }
     // Check if we have a custom mapping for this exact path
     if (routeMapping[pathname]) {
       return routeMapping[pathname];

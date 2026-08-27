@@ -104,6 +104,9 @@ described as deployable until the build and Worker configuration land together.
   credit passthrough, anonymous rejection, and account-mismatch failure.
 - `Console CI / verify` runs the same checks on pushes and pull requests to
   `master` without production credentials.
+- `pnpm test:validator-pairing` exercises protected pairing routes against a
+  local mock Core after the build. Account association remains default off in
+  Core until the node client and supervised rollout are complete.
 - `gitleaks detect --source . --no-git --config .gitleaks.toml --redact`, then
   `gitleaks git . --log-opts=HEAD --config .gitleaks.toml --redact` from a full
   clone.
@@ -116,3 +119,5 @@ described as deployable until the build and Worker configuration land together.
 - [src/app/api/AGENTS.md](src/app/api/AGENTS.md) — server route handlers (the BFF / grid proxy).
 - [src/lib/AGENTS.md](src/lib/AGENTS.md) — auth and the grid v1 client.
 - [src/features/AGENTS.md](src/features/AGENTS.md) — per-route feature UI.
+- [src/features/validators/AGENTS.md](src/features/validators/AGENTS.md) - local
+  onboarding, optional private account pairing, and evidence views.

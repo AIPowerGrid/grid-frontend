@@ -18,13 +18,13 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 - `workers/` — worker list plus device-enrollment approval. The browser signs
   only Core's exact delegation message and locally confirms the recovered
   signer before approval. `profile/` — profile view + create form (`utils/form-schema.ts`).
-- `validators/` — validator onboarding plus aggregate evidence scorecards and
-  assignment health. Onboarding first installs the exact preview and prepares
-  the signing identity locally, then links only its public address, issues a
-  one-time validator-purpose key with the exact validator scopes, and completes
-  local initialization. The Console never generates, receives, or stores the
-  validator private key. The public release gate exposes downloads only after
-  the matching Core migration and verified preview release are live.
+- `validators/` — local-app onboarding, optional private account association,
+  aggregate evidence scorecards, and assignment health. Owned in its own
+  AGENTS.md. The released app creates a dedicated node identity and scoped key
+  locally; no manual Console key or personal wallet is required. The Console
+  never generates, receives, or stores the validator private key.
+  Account pairing is a separate, default-off Core feature pending coordinated
+  node-client release and canary; it grants visibility, not node control.
   Preview and assignment-bound evidence must be visually distinct. The page
   separates probe completion, accepted signed evidence, worker pass, quorum,
   and finalization, and shows aggregate validator liveness without identities.
@@ -54,9 +54,10 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   URL directly). Server components may use `gridFetch` from `src/lib/grid-api.ts`.
 - Worker enrollment must verify Core's canonical delegation fields and message
   locally before opening the wallet signature prompt.
-- Validator key plaintext is displayed once and must never be stored in browser
-  persistence or logged. Do not offer onboarding until the canonical account has
-  a linked wallet; the node's signing wallet must match it during registration.
+- Validator account pairing requires explicit Console approval followed by an
+  explicit confirmation on the node. Never auto-approve on login or poll,
+  request a node private key, or treat account association as ownership,
+  recovery, payout delegation, or operator independence.
 - Forms use React Hook Form + Zod schemas (e.g. `profile/utils/form-schema.ts`).
 - Funding may use any wallet that Core has verified on the canonical account.
   The funding selector renders only assets Core marks enabled; disabled future
@@ -79,4 +80,5 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 
 ## Child DOX Index
 
-- None — leaf.
+- [validators/AGENTS.md](validators/AGENTS.md) - onboarding, private pairing,
+  and evidence-view contracts.
