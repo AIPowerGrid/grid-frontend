@@ -577,18 +577,35 @@ export default function ValidatorScorecardsView() {
                 production traffic.
               </p>
             </div>
-            <Badge variant='outline'>v0.1.0-preview</Badge>
+            <Badge variant='outline'>v0.1.0-preview.4</Badge>
           </div>
 
-          <div className='grid gap-px overflow-hidden rounded-md border bg-border md:grid-cols-3'>
+          <div className='grid gap-px overflow-hidden rounded-md border bg-border sm:grid-cols-2 xl:grid-cols-4'>
+            <div className='space-y-3 bg-background p-5'>
+              <div className='flex items-center gap-2 font-medium'>
+                <Download className='h-4 w-4 text-emerald-500' />
+                1. Install and prepare
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                Install the exact preview, then create the signing identity on
+                the validator machine. The private key is never sent here.
+              </p>
+              <Button asChild variant='outline' size='sm'>
+                <a href='https://aipowergrid.io/validate'>View downloads</a>
+              </Button>
+              <code className='block break-all rounded bg-muted px-3 py-2 text-xs'>
+                aipg-validator prepare-wallet
+              </code>
+            </div>
+
             <div className='space-y-3 bg-background p-5'>
               <div className='flex items-center gap-2 font-medium'>
                 <WalletCards className='h-4 w-4 text-orange-500' />
-                1. Link the signing wallet
+                2. Link the public address
               </div>
               <p className='text-sm text-muted-foreground'>
-                The node&apos;s signing wallet must be linked to this Grid
-                account.
+                Link the address printed by the validator. Never paste its
+                private key into the Console or send it to anyone.
               </p>
               {accountLoading ? (
                 <Skeleton className='h-9 w-full' />
@@ -606,7 +623,7 @@ export default function ValidatorScorecardsView() {
             <div className='space-y-3 bg-background p-5'>
               <div className='flex items-center gap-2 font-medium'>
                 <KeyRound className='h-4 w-4 text-sky-500' />
-                2. Create a validator key
+                3. Create a validator key
               </div>
               <p className='text-sm text-muted-foreground'>
                 This key can only read assignments, probe, attest, and read
@@ -630,19 +647,18 @@ export default function ValidatorScorecardsView() {
 
             <div className='space-y-3 bg-background p-5'>
               <div className='flex items-center gap-2 font-medium'>
-                <Download className='h-4 w-4 text-emerald-500' />
-                3. Install and check
+                <Terminal className='h-4 w-4 text-violet-500' />
+                4. Initialize and check
               </div>
               <p className='text-sm text-muted-foreground'>
-                The public release gate opens downloads only after the matching
-                Core contract and signed preview release are live. Then run the
-                health check before leaving the node online.
+                Paste the one-time validator key into local setup, then verify
+                registration before leaving the node online.
               </p>
-              <Button asChild variant='outline' size='sm'>
-                <a href='https://aipowergrid.io/validate'>
-                  View install status
-                </a>
-              </Button>
+              <div className='space-y-1 text-xs'>
+                <code className='block'>aipg-validator init</code>
+                <code className='block'>aipg-validator check --no-probe</code>
+                <code className='block'>aipg-validator run</code>
+              </div>
             </div>
           </div>
 
@@ -668,14 +684,6 @@ export default function ValidatorScorecardsView() {
             </div>
           ) : null}
 
-          <div className='flex items-start gap-3 rounded-md bg-muted/60 p-4'>
-            <Terminal className='mt-0.5 h-4 w-4 shrink-0' />
-            <div className='space-y-1 text-sm'>
-              <code className='block'>aipg-validator init</code>
-              <code className='block'>aipg-validator check</code>
-              <code className='block'>aipg-validator run</code>
-            </div>
-          </div>
           {onboardingError ? (
             <p className='text-sm text-destructive'>{onboardingError}</p>
           ) : null}
