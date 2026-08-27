@@ -18,6 +18,9 @@ provisioning helpers, search parameters, and small shared utilities.
 - `grid-account.ts` — server-side Grid account/session provisioning helpers.
 - `safe-callback-url.ts` — same-origin post-auth navigation guard. Use it for
   any browser-controlled Auth.js callback; Web3 sign-in redirects manually.
+- `validator-pairing.ts` - shared Zod display schemas and safe error messages.
+  Contains no credentials or signing logic; strips node-only payloads at the
+  BFF. Core remains authoritative for proof, ownership and state transitions.
 - `searchparams.ts` — nuqs URL search-param parsers. `utils.ts` — `cn` + misc helpers.
 
 ## Local Contracts
@@ -28,6 +31,9 @@ provisioning helpers, search parameters, and small shared utilities.
 - Token refresh must preserve the session's canonical `gridAccountId`. If a
   service exchange returns a different account, fail closed and require a new
   proof-backed login; never move a live Console session to another balance.
+- `resolveGridKey` never follows a service-exchange redirect. Callers may pass
+  an abort signal; validator pairing includes refresh in its ten-second Core
+  deadline instead of timing only the later metadata request.
 - `gridSession` / wallet verify **soft-fail** (return `null`): a grid outage degrades key
   features but must not break sign-in.
 - `grid-api.ts` is the only place that constructs grid URLs/headers — route handlers call

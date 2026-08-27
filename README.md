@@ -46,3 +46,22 @@ payouts live in Grid core. The console does not require direct database access.
 Production currently deploys on Vercel. The checked-in Cloudflare/OpenNext import
 is incomplete and is not a supported deploy path until its package, Worker
 configuration, build, and runtime smoke tests are committed together.
+
+### Validator Account Pairing
+
+The released local operator app creates and keeps a dedicated validator signer
+and scoped key on the node. A personal wallet or Console-created key is not
+required to start a node.
+
+The new Console pairing flow is under review, not a public enablement. It pairs
+an existing node with an existing human account for private status visibility.
+The human approves in the Console, compares a code, then confirms separately in
+the local app. No node keys, payout rights, account merges, or economic authority
+are transferred. Core migration `0030`, the node client, and a supervised canary
+must land before enabling Core's default-off `VALIDATOR_PAIRING_ENABLED` flag.
+
+Run `pnpm build`, `pnpm test:auth-smoke`, and `pnpm test:validator-pairing` for
+local verification. `pnpm test:validator-pairing --ui` starts a test-only mock
+Core/sign-in fixture for browser QA; it uses no real accounts or production keys.
+See [validator DOX](src/features/validators/AGENTS.md) for contracts and rollout
+gates. Preview.12 does not yet contain local-app pairing controls.
