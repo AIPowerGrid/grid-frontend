@@ -577,7 +577,7 @@ export default function ValidatorScorecardsView() {
                 production traffic.
               </p>
             </div>
-            <Badge variant='outline'>v0.1.0-preview.4</Badge>
+            <Badge variant='outline'>v0.1.0-preview.5</Badge>
           </div>
 
           <div className='grid gap-px overflow-hidden rounded-md border bg-border sm:grid-cols-2 xl:grid-cols-4'>
