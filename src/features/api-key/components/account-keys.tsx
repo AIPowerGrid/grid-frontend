@@ -1,6 +1,12 @@
+// SPDX-FileCopyrightText: 2026 AI Power Grid
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import GoogleSignInButton from '@/features/auth/components/google-auth-button';
+import Web3AuthButton from '@/features/auth/components/web3-auth-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,8 +37,8 @@ interface AccountInfo {
 
 /**
  * v2 key management: list, create (plaintext shown exactly once), revoke.
- * Falls back to the legacy single-key generator for sessions that predate
- * grid accounts.
+ * Account management requires fresh Core-verified Google or wallet proof.
+ * Sign-in recovery never retries a mutation automatically.
  */
 export default function AccountKeys() {
   const [account, setAccount] = useState<AccountInfo | null>(null);
@@ -43,21 +49,27 @@ export default function AccountKeys() {
   const [freshKey, setFreshKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const refresh = useCallback(async () => {
+    setRefreshing(true);
     try {
       const res = await fetch('/api/account');
       if (res.status === 404) {
-        // No grid account on this session (pre-v2 login) — legacy flow.
+        // A readable website session does not guarantee a Core account token.
         setLegacy(true);
         return;
       }
       if (!res.ok) throw new Error('Account fetch failed');
       setAccount(await res.json());
-    } catch (e: any) {
-      setError(e.message ?? 'Could not load account');
+      setLegacy(false);
+    } catch {
+      setError('Could not refresh the key list. Try again.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -65,23 +77,49 @@ export default function AccountKeys() {
     refresh();
   }, [refresh]);
 
+  function mutationError(status: number, action: 'create' | 'revoke') {
+    if (
+      status === 401 ||
+      status === 403 ||
+      (status === 404 && action === 'create')
+    ) {
+      setNeedsSignIn(true);
+      return 'Sign in again with Google or a linked wallet to manage API keys.';
+    }
+    if (status === 429)
+      return 'Too many requests. Wait a moment and try again.';
+    if (status >= 500)
+      return 'Grid is temporarily unavailable. Refresh the key list before retrying.';
+    return `Could not ${action} this key. Refresh the key list and try again.`;
+  }
+
   async function createKey(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
     setError('');
+    setNeedsSignIn(false);
     try {
       const res = await fetch('/api/account/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label: label || 'api' })
       });
-      if (!res.ok) throw new Error('Key creation failed');
+      if (!res.ok) {
+        setError(mutationError(res.status, 'create'));
+        return;
+      }
       const data = await res.json();
+      if (typeof data.api_key !== 'string' || !data.api_key) {
+        throw new Error('Missing new key');
+      }
       setFreshKey(data.api_key);
+      setCopied(false);
       setLabel('');
       await refresh();
-    } catch (e: any) {
-      setError(e.message ?? 'Key creation failed');
+    } catch {
+      setError(
+        'Could not confirm key creation. Refresh the key list before trying again.'
+      );
     } finally {
       setCreating(false);
     }
@@ -92,15 +130,34 @@ export default function AccountKeys() {
       !confirm('Revoke this key? Anything using it stops working immediately.')
     )
       return;
-    await fetch(`/api/account/keys/${id}`, { method: 'DELETE' });
-    await refresh();
+    setRevoking(id);
+    setError('');
+    setNeedsSignIn(false);
+    try {
+      const res = await fetch(`/api/account/keys/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        setError(mutationError(res.status, 'revoke'));
+        return;
+      }
+      await refresh();
+    } catch {
+      setError(
+        'Could not confirm revocation. Refresh the key list before trying again.'
+      );
+    } finally {
+      setRevoking(null);
+    }
   }
 
   async function copyKey() {
     if (!freshKey) return;
-    await navigator.clipboard.writeText(freshKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(freshKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Clipboard unavailable. Select and copy the displayed key.');
+    }
   }
 
   if (loading) return <p className='text-muted-foreground'>Loading account…</p>;
@@ -145,7 +202,7 @@ export default function AccountKeys() {
           {account?.wallet && (
             <p className='text-sm'>
               <span className='text-muted-foreground'>Linked wallet: </span>
-              <code className='text-green-500'>{account.wallet}</code>
+              <code className='break-all text-green-500'>{account.wallet}</code>
             </p>
           )}
 
@@ -167,18 +224,49 @@ export default function AccountKeys() {
             </div>
           )}
 
-          <form onSubmit={createKey} className='flex gap-2'>
+          <form onSubmit={createKey} className='flex flex-wrap gap-2'>
             <Input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder='Key label (e.g. my-agent, prod, laptop)'
               className='max-w-xs'
             />
-            <Button type='submit' disabled={creating}>
+            <Button type='submit' disabled={creating || revoking !== null}>
               {creating ? 'Creating…' : 'Create key'}
             </Button>
+            <Button
+              type='button'
+              variant='outline'
+              size='icon'
+              title='Refresh key list'
+              aria-label='Refresh key list'
+              disabled={refreshing || creating || revoking !== null}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw className='h-4 w-4' />
+            </Button>
           </form>
-          {error && <p className='text-sm text-red-500'>{error}</p>}
+          {error && (
+            <p role='alert' className='text-sm text-red-500'>
+              {error}
+            </p>
+          )}
+          {needsSignIn && (
+            <div className='max-w-sm space-y-3'>
+              <p className='text-sm text-muted-foreground'>
+                Use the Google account or wallet already linked to this account.
+                Signing in does not create or revoke a key.
+              </p>
+              <Suspense
+                fallback={<p className='text-sm'>Loading sign-in options...</p>}
+              >
+                <div className='grid gap-3 [&_button]:mt-0'>
+                  <GoogleSignInButton returnTo='/dashboard/api-key' />
+                  <Web3AuthButton returnTo='/dashboard/api-key' />
+                </div>
+              </Suspense>
+            </div>
+          )}
 
           <Table>
             <TableHeader>
@@ -214,9 +302,10 @@ export default function AccountKeys() {
                       <Button
                         variant='ghost'
                         size='sm'
-                        onClick={() => revoke(k.id)}
+                        disabled={creating || revoking !== null}
+                        onClick={() => void revoke(k.id)}
                       >
-                        Revoke
+                        {revoking === k.id ? 'Revoking...' : 'Revoke'}
                       </Button>
                     )}
                   </TableCell>
