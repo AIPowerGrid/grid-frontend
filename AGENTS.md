@@ -59,7 +59,8 @@ described as deployable until the build and Worker configuration land together.
   own AGENTS.md.
 - **`src/components/`** — shared/presentational UI (shadcn `ui/`, layout, kbar, providers).
 - **`src/hooks/`, `src/constants/`, `types/`** — shared hooks, static nav/data, global types.
-- **`src/proxy.ts`** — Auth.js route gate for `/dashboard/:path*`.
+- **`src/proxy.ts`** — Auth.js route gate for `/dashboard/:path*` and the
+  capability-bound `/oauth/authorize` consent page.
 - **`public/`** — static assets. **Root config** — `next.config.js`, `next.config.mjs`,
   `tailwind.config.js`, `tsconfig.json`, `env.example.txt`, `vercel.json`.
 
@@ -81,7 +82,9 @@ described as deployable until the build and Worker configuration land together.
   Google and wallet proofs are verified by Core and issue short account-manage
   tokens. GitHub uses a Console-local app identity and receives inference/read
   authority only. Core exchange soft-fails rather than blocking frontend login.
-- **`src/proxy.ts`** gates `/dashboard/:path*` — unauthenticated requests redirect to `/`.
+- **`src/proxy.ts`** gates `/dashboard/:path*` and `/oauth/authorize` —
+  unauthenticated requests redirect to `/`. OAuth callbacks preserve only one
+  strictly shaped opaque request capability.
 
 ## Work Guidance
 
@@ -112,6 +115,9 @@ described as deployable until the build and Worker configuration land together.
 - `pnpm test:validator-pairing` exercises protected pairing routes against a
   local mock Core after the build. Account association remains default off in
   Core until the node client and supervised rollout are complete.
+- `pnpm test:oauth-consent` exercises the protected OAuth consent BFF against a
+  local mock Core: credential isolation, origin/body limits, response schemas,
+  redirect refusal, account-bound refresh, and consent-page privacy headers.
 - `gitleaks detect --source . --no-git --config .gitleaks.toml --redact`, then
   `gitleaks git . --log-opts=HEAD --config .gitleaks.toml --redact` from a full
   clone.

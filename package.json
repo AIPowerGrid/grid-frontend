@@ -20,6 +20,7 @@
     "lint:strict": "eslint --max-warnings=0 src",
     "test:auth-smoke": "node scripts/auth-smoke.mjs",
     "test:key-management": "node scripts/key-management-smoke.mjs",
+    "test:oauth-consent": "node scripts/oauth-consent-smoke.mjs",
     "test:validator-pairing": "node scripts/validator-pairing-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
