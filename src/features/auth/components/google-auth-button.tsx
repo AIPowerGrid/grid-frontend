@@ -7,9 +7,13 @@ import { Icons } from '@/components/icons';
 import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
 export default function GoogleSignInButton({
-  returnTo
+  returnTo,
+  onBeforeSignIn,
+  onSignInFailed
 }: {
   returnTo?: string;
+  onBeforeSignIn?: () => void;
+  onSignInFailed?: () => void;
 } = {}) {
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(
@@ -21,7 +25,14 @@ export default function GoogleSignInButton({
       className='w-full'
       variant='outline'
       type='button'
-      onClick={() => signIn('google', { callbackUrl })}
+      onClick={async () => {
+        onBeforeSignIn?.();
+        try {
+          await signIn('google', { callbackUrl });
+        } catch {
+          onSignInFailed?.();
+        }
+      }}
     >
       <Icons.google className='mr-2 h-4 w-4' />
       Continue with Google

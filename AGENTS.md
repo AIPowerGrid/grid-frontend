@@ -105,7 +105,8 @@ described as deployable until the build and Worker configuration land together.
 - `Console CI / verify` runs the same checks on pushes and pull requests to
   `master` without production credentials.
 - `pnpm test:key-management` verifies key creation/revocation against a local
-  mock Core after building, including expired proof and service-refresh denial.
+  mock Core after building, including bounded pending-creation retry, canceled
+  reauthentication, expired proof, failure statuses, and service-refresh denial.
   `pnpm test:key-management --ui` starts a local-only fixture for browser QA;
   its fake sessions and keys must never enter production routes or configuration.
 - `pnpm test:validator-pairing` exercises protected pairing routes against a

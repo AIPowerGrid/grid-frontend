@@ -9,9 +9,13 @@ import { ethers } from 'ethers';
 import { safeCallbackUrl } from '@/lib/safe-callback-url';
 
 export default function Web3AuthButton({
-  returnTo
+  returnTo,
+  onBeforeSignIn,
+  onSignInFailed
 }: {
   returnTo?: string;
+  onBeforeSignIn?: () => void;
+  onSignInFailed?: () => void;
 } = {}) {
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(
@@ -98,6 +102,7 @@ export default function Web3AuthButton({
       const signature = await signer.signMessage(message);
 
       // Sign in with NextAuth using credentials
+      onBeforeSignIn?.();
       const result = await signIn('web3', {
         address,
         signature,
@@ -108,6 +113,7 @@ export default function Web3AuthButton({
       });
 
       if (result?.error) {
+        onSignInFailed?.();
         throw new Error(result.error);
       }
 
@@ -116,6 +122,7 @@ export default function Web3AuthButton({
         window.location.href = callbackUrl;
       }
     } catch (err) {
+      onSignInFailed?.();
       console.error('Web3 authentication error:', err);
       setError(
         err instanceof Error

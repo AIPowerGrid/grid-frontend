@@ -6,6 +6,11 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import http from 'node:http';
 import { encode } from 'next-auth/jwt';
+import {
+  PENDING_KEY_CREATION_KEY,
+  rememberPendingKeyCreation,
+  takePendingKeyCreation
+} from '../src/features/api-key/lib/pending-key-creation.mjs';
 
 const appOrigin = 'http://127.0.0.1:18896';
 const coreOrigin = 'http://127.0.0.1:18897';
@@ -29,6 +34,31 @@ const keys = [
     revoked: false
   }
 ];
+
+function memoryStorage() {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key)
+  };
+}
+
+function verifyPendingIntentContract() {
+  const now = 1_800_000_000_000;
+  const storage = memoryStorage();
+  const intent = { accountId, label: 'reauth-test' };
+  rememberPendingKeyCreation(storage, intent, now);
+  assert.deepEqual(takePendingKeyCreation(storage, now + 1), intent);
+  assert.equal(takePendingKeyCreation(storage, now + 2), null);
+
+  rememberPendingKeyCreation(storage, intent, now);
+  assert.equal(takePendingKeyCreation(storage, now + 10 * 60 * 1000 + 1), null);
+  storage.setItem(PENDING_KEY_CREATION_KEY, '{not-json');
+  assert.equal(takePendingKeyCreation(storage, now), null);
+}
+
+verifyPendingIntentContract();
 
 async function cookie(fresh = false, expired = false) {
   const value = await encode({
@@ -175,7 +205,12 @@ app.stderr.on('data', (chunk) => {
   appOutput = (appOutput + chunk).slice(-16_000);
 });
 
-async function request(path, session = '', method = 'GET') {
+async function request(
+  path,
+  session = '',
+  method = 'GET',
+  label = 'new-test-key'
+) {
   return fetch(`${appOrigin}${path}`, {
     method,
     headers: {
@@ -183,9 +218,7 @@ async function request(path, session = '', method = 'GET') {
       Origin: appOrigin,
       'Content-Type': 'application/json'
     },
-    ...(method === 'POST'
-      ? { body: JSON.stringify({ label: 'new-test-key' }) }
-      : {}),
+    ...(method === 'POST' ? { body: JSON.stringify({ label }) } : {}),
     signal: AbortSignal.timeout(15_000),
     redirect: 'manual'
   });
@@ -250,19 +283,50 @@ try {
     overrideStatus = 0;
     assert.equal((await request('/api/account', fresh)).status, 200);
     assert.equal(writes, 0, 'sign-in and reads never retry a mutation');
-    const created = await request('/api/account/keys', fresh, 'POST');
+
+    const canceledStorage = memoryStorage();
+    rememberPendingKeyCreation(canceledStorage, {
+      accountId,
+      label: 'canceled-reauth'
+    });
+    const canceled = takePendingKeyCreation(canceledStorage);
+    assert.ok(canceled);
+    assert.equal(
+      (await request('/api/account/keys', stale, 'POST', canceled.label))
+        .status,
+      403
+    );
+    assert.equal(writes, 0, 'canceled reauth cannot create a key');
+    assert.equal(takePendingKeyCreation(canceledStorage), null);
+
+    const retryStorage = memoryStorage();
+    rememberPendingKeyCreation(retryStorage, {
+      accountId,
+      label: 'reauth-test'
+    });
+    const pending = takePendingKeyCreation(retryStorage);
+    assert.ok(pending);
+    assert.equal(pending.accountId, accountId);
+    const created = await request(
+      '/api/account/keys',
+      fresh,
+      'POST',
+      pending.label
+    );
     assert.equal(created.status, 200);
     assert.equal(
       (await created.json()).api_key,
       'local-fixture-key-not-a-credential'
     );
     assert.equal(writes, 1);
+    assert.equal(keys.at(-1)?.label, 'reauth-test');
+    assert.equal(takePendingKeyCreation(retryStorage), null);
     assert.equal((await request(keyPath, fresh, 'DELETE')).status, 200);
     assert.equal(keys[0].revoked, true);
     assert.equal(writes, 2);
     assert.equal(mockErrors.length, 0, String(mockErrors[0] ?? ''));
     console.log(
-      'Key-management anonymous, fresh-proof, service-refresh, failure and explicit-mutation smoke passed'
+      'Key-management pending-reauth, canceled-reauth, fresh-proof, service-refresh and failure smoke passed'
     );
   }
 } finally {

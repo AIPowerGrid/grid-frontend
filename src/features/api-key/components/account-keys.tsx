@@ -3,7 +3,13 @@
 
 'use client';
 
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import { RefreshCw } from 'lucide-react';
 import GoogleSignInButton from '@/features/auth/components/google-auth-button';
 import Web3AuthButton from '@/features/auth/components/web3-auth-button';
@@ -12,6 +18,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import {
+  clearPendingKeyCreation,
+  rememberPendingKeyCreation,
+  takePendingKeyCreation
+} from '@/features/api-key/lib/pending-key-creation.mjs';
 import {
   Table,
   TableBody,
@@ -35,10 +46,31 @@ interface AccountInfo {
   keys: KeyRow[];
 }
 
+interface PendingCreate {
+  accountId: string;
+  label: string;
+}
+
+function mutationError(status: number, action: 'create' | 'revoke') {
+  if (
+    status === 401 ||
+    status === 403 ||
+    (status === 404 && action === 'create')
+  ) {
+    return 'Sign in again with Google or a linked wallet to manage API keys.';
+  }
+  if (status === 429) return 'Too many requests. Wait a moment and try again.';
+  if (status >= 500)
+    return 'Grid is temporarily unavailable. Refresh the key list before retrying.';
+  return `Could not ${action} this key. Refresh the key list and try again.`;
+}
+
 /**
  * v2 key management: list, create (plaintext shown exactly once), revoke.
  * Account management requires fresh Core-verified Google or wallet proof.
- * Sign-in recovery never retries a mutation automatically.
+ * A definitely rejected creation may be retried once after fresh proof. The
+ * intent is account-bound and consumed before sending; revokes and uncertain
+ * failures always require another explicit click.
  */
 export default function AccountKeys() {
   const [account, setAccount] = useState<AccountInfo | null>(null);
@@ -52,6 +84,10 @@ export default function AccountKeys() {
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingCreate, setPendingCreate] = useState<PendingCreate | null>(
+    null
+  );
+  const pendingRetryChecked = useRef(false);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -59,6 +95,7 @@ export default function AccountKeys() {
       const res = await fetch('/api/account');
       if (res.status === 404) {
         // A readable website session does not guarantee a Core account token.
+        setAccount(null);
         setLegacy(true);
         return;
       }
@@ -73,56 +110,91 @@ export default function AccountKeys() {
     }
   }, []);
 
+  const issueKey = useCallback(
+    async (requestedLabel: string) => {
+      const keyLabel = requestedLabel.trim() || 'api';
+      setCreating(true);
+      setError('');
+      setNeedsSignIn(false);
+      setPendingCreate(null);
+      try {
+        const res = await fetch('/api/account/keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: keyLabel })
+        });
+        if (!res.ok) {
+          if (
+            (res.status === 401 || res.status === 403 || res.status === 404) &&
+            account
+          ) {
+            setNeedsSignIn(true);
+          }
+          if ((res.status === 401 || res.status === 403) && account) {
+            setPendingCreate({
+              accountId: account.account_id,
+              label: keyLabel
+            });
+          }
+          setError(mutationError(res.status, 'create'));
+          return;
+        }
+        const data = await res.json();
+        if (typeof data.api_key !== 'string' || !data.api_key) {
+          throw new Error('Missing new key');
+        }
+        setPendingCreate(null);
+        setFreshKey(data.api_key);
+        setCopied(false);
+        setLabel('');
+        await refresh();
+      } catch {
+        setError(
+          'Could not confirm key creation. Refresh the key list before trying again.'
+        );
+      } finally {
+        setCreating(false);
+      }
+    },
+    [account, refresh]
+  );
+
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
-  function mutationError(status: number, action: 'create' | 'revoke') {
-    if (
-      status === 401 ||
-      status === 403 ||
-      (status === 404 && action === 'create')
-    ) {
-      setNeedsSignIn(true);
-      return 'Sign in again with Google or a linked wallet to manage API keys.';
+  useEffect(() => {
+    if (loading || !account || pendingRetryChecked.current) return;
+    pendingRetryChecked.current = true;
+    const pending = takePendingKeyCreation(window.sessionStorage);
+    if (!pending) return;
+    if (pending.accountId !== account.account_id) {
+      setError(
+        'The signed-in account changed, so the pending key was not created.'
+      );
+      return;
     }
-    if (status === 429)
-      return 'Too many requests. Wait a moment and try again.';
-    if (status >= 500)
-      return 'Grid is temporarily unavailable. Refresh the key list before retrying.';
-    return `Could not ${action} this key. Refresh the key list and try again.`;
+    void issueKey(pending.label);
+  }, [account, issueKey, loading]);
+
+  function createKey(e: React.FormEvent) {
+    e.preventDefault();
+    void issueKey(label);
   }
 
-  async function createKey(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setError('');
-    setNeedsSignIn(false);
+  function rememberRejectedCreation() {
+    if (!pendingCreate) return;
     try {
-      const res = await fetch('/api/account/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label: label || 'api' })
-      });
-      if (!res.ok) {
-        setError(mutationError(res.status, 'create'));
-        return;
-      }
-      const data = await res.json();
-      if (typeof data.api_key !== 'string' || !data.api_key) {
-        throw new Error('Missing new key');
-      }
-      setFreshKey(data.api_key);
-      setCopied(false);
-      setLabel('');
-      await refresh();
+      rememberPendingKeyCreation(window.sessionStorage, pendingCreate);
     } catch {
       setError(
-        'Could not confirm key creation. Refresh the key list before trying again.'
+        'Your browser could not preserve the pending request. Sign in, then click Create key again.'
       );
-    } finally {
-      setCreating(false);
     }
+  }
+
+  function forgetRejectedCreation() {
+    clearPendingKeyCreation(window.sessionStorage);
   }
 
   async function revoke(id: string) {
@@ -133,9 +205,11 @@ export default function AccountKeys() {
     setRevoking(id);
     setError('');
     setNeedsSignIn(false);
+    setPendingCreate(null);
     try {
       const res = await fetch(`/api/account/keys/${id}`, { method: 'DELETE' });
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) setNeedsSignIn(true);
         setError(mutationError(res.status, 'revoke'));
         return;
       }
@@ -170,12 +244,20 @@ export default function AccountKeys() {
           </CardHeader>
           <CardContent className='space-y-3'>
             <p className='text-sm text-muted-foreground'>
-              We couldn&apos;t find a grid account for this session. Sign out
-              and sign back in to provision one, then your API keys will appear
-              here.
+              We couldn&apos;t find a Grid account proof for this session.
+              Continue with the Google account or wallet already linked to your
+              account.
             </p>
-            <Button asChild variant='outline'>
-              <Link href='/api/auth/signout'>Sign out</Link>
+            <Suspense
+              fallback={<p className='text-sm'>Loading sign-in options...</p>}
+            >
+              <div className='grid max-w-sm gap-3 [&_button]:mt-0'>
+                <GoogleSignInButton returnTo='/dashboard/api-key' />
+                <Web3AuthButton returnTo='/dashboard/api-key' />
+              </div>
+            </Suspense>
+            <Button asChild variant='ghost'>
+              <Link href='/api/auth/signout'>Use a different account</Link>
             </Button>
           </CardContent>
         </Card>
@@ -255,14 +337,24 @@ export default function AccountKeys() {
             <div className='max-w-sm space-y-3'>
               <p className='text-sm text-muted-foreground'>
                 Use the Google account or wallet already linked to this account.
-                Signing in does not create or revoke a key.
+                {pendingCreate
+                  ? ' After fresh proof, this rejected creation will retry once.'
+                  : ' After signing in, click Revoke again.'}
               </p>
               <Suspense
                 fallback={<p className='text-sm'>Loading sign-in options...</p>}
               >
                 <div className='grid gap-3 [&_button]:mt-0'>
-                  <GoogleSignInButton returnTo='/dashboard/api-key' />
-                  <Web3AuthButton returnTo='/dashboard/api-key' />
+                  <GoogleSignInButton
+                    returnTo='/dashboard/api-key'
+                    onBeforeSignIn={rememberRejectedCreation}
+                    onSignInFailed={forgetRejectedCreation}
+                  />
+                  <Web3AuthButton
+                    returnTo='/dashboard/api-key'
+                    onBeforeSignIn={rememberRejectedCreation}
+                    onSignInFailed={forgetRejectedCreation}
+                  />
                 </div>
               </Suspense>
             </div>
