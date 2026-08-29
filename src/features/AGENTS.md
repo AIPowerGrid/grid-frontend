@@ -10,7 +10,14 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 - `auth/` — sign-in view + provider buttons (Google, GitHub, Web3). Drives `src/lib/auth`.
 - `overview/` — dashboard home widgets (pie/area/bar graphs, recent models, quick start,
   about-grid) with skeleton variants for the parallel routes under `dashboard/overview/`.
-- `api-key/` — API-key view + account-keys management UI.
+- `api-key/` — API-key view + account-keys management UI. Create/revoke failures
+  remain visible; missing or stale proof offers the existing Google and wallet
+  sign-in controls. A creation rejected with 401/403 may be remembered in
+  tab-local storage and retried once after fresh proof, only for the same
+  canonical account; consume the intent before sending. Revocation, login,
+  list refresh, account changes, and uncertain failures never retry a mutation.
+  Core still decides account-management authority; the UI does not elevate a
+  service-refreshed read token or treat a failed revocation as success.
 - `api-usage/` — usage/metering view. `rewards/` — wallet rewards view.
 - `funding/` — explicit EIP-6963 payment-wallet selection, verified account
   wallet binding, Base balance/gas preflight, guarded asset availability,

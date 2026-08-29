@@ -34,5 +34,7 @@ jobs:
         run: pnpm build
       - name: Test canonical account boundary
         run: pnpm test:auth-smoke
+      - name: Test key-management proof boundary
+        run: pnpm test:key-management
       - name: Test validator account pairing boundary
         run: pnpm test:validator-pairing

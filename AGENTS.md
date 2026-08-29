@@ -104,6 +104,11 @@ described as deployable until the build and Worker configuration land together.
   credit passthrough, anonymous rejection, and account-mismatch failure.
 - `Console CI / verify` runs the same checks on pushes and pull requests to
   `master` without production credentials.
+- `pnpm test:key-management` verifies key creation/revocation against a local
+  mock Core after building, including bounded pending-creation retry, canceled
+  reauthentication, expired proof, failure statuses, and service-refresh denial.
+  `pnpm test:key-management --ui` starts a local-only fixture for browser QA;
+  its fake sessions and keys must never enter production routes or configuration.
 - `pnpm test:validator-pairing` exercises protected pairing routes against a
   local mock Core after the build. Account association remains default off in
   Core until the node client and supervised rollout are complete.
