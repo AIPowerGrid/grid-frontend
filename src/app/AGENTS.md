@@ -13,6 +13,9 @@ public network/payout transparency, and the hosted API reference.
 - `dashboard/connect-validator/[pairingId]/` - protected, short-lived validator
   account-visibility approval. No-referrer metadata/HTTP header and frame denial
   protect the request URL and consent screen. Node confirmation remains local.
+- `oauth/authorize/` - protected, no-referrer OAuth consent page for an opaque,
+  short-lived Core request capability. Login preserves only that exact
+  capability; it never approves the client implicitly.
 - `dashboard/` - protected account pages: overview, API keys, credits/funding,
   usage, rewards, settings, validators, and workers.
 - `payouts/` - public worker payout transparency and live redacted jobs.
@@ -26,7 +29,8 @@ public network/payout transparency, and the hosted API reference.
 
 ## Local Contracts
 
-- `/dashboard/:path*` requires Auth.js through `src/proxy.ts`.
+- `/dashboard/:path*` and `/oauth/authorize` require Auth.js through
+  `src/proxy.ts`.
 - Public pages must not depend on a session or expose account IDs/private job
   data. Public payout data contains only already-public wallets/transactions;
   network status contains only Core-supplied redacted aggregates.
@@ -45,8 +49,8 @@ public network/payout transparency, and the hosted API reference.
 
 - `pnpm lint`
 - `pnpm build`
-- Manually verify unauthenticated dashboard redirect and public `/payouts` and
-  `/network`.
+- Manually verify unauthenticated dashboard/OAuth redirects and public
+  `/payouts` and `/network`.
 
 ## Child DOX Index
 

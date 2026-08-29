@@ -3,7 +3,8 @@ import SignInViewPage from '@/features/auth/components/sigin-view';
 
 export const metadata: Metadata = {
   title: 'Authentication | Sign In',
-  description: 'Sign In page for authentication.'
+  description: 'Sign In page for authentication.',
+  referrer: 'no-referrer'
 };
 
 export default async function Page() {

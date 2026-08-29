@@ -36,5 +36,7 @@ jobs:
         run: pnpm test:auth-smoke
       - name: Test key-management proof boundary
         run: pnpm test:key-management
+      - name: Test OAuth consent boundary
+        run: pnpm test:oauth-consent
       - name: Test validator account pairing boundary
         run: pnpm test:validator-pairing

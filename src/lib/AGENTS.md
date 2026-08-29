@@ -18,6 +18,8 @@ provisioning helpers, search parameters, and small shared utilities.
 - `grid-account.ts` — server-side Grid account/session provisioning helpers.
 - `safe-callback-url.ts` — same-origin post-auth navigation guard. Use it for
   any browser-controlled Auth.js callback; Web3 sign-in redirects manually.
+- `oauth-authorization.ts` - strict public display, decision, request-capability,
+  redirect, and error schemas for the remote-agent consent flow.
 - `validator-pairing.ts` - shared Zod display schemas and safe error messages.
   Contains no credentials or signing logic; strips node-only payloads at the
   BFF. Core remains authoritative for proof, ownership and state transitions.
@@ -39,8 +41,9 @@ provisioning helpers, search parameters, and small shared utilities.
 - `grid-api.ts` is the only place that constructs grid URLs/headers — route handlers call
   through it, not raw `fetch`, for cached reads.
 - There is no local DB layer. New account work goes through Grid v1.
-- Browser-controlled auth callbacks are restricted to `/dashboard` routes;
-  never permit an arbitrary same-origin API or action path as a callback.
+- Browser-controlled auth callbacks are restricted to `/dashboard` routes or
+  `/oauth/authorize` with exactly one valid `oauth_req_` capability; never
+  permit an arbitrary same-origin API or action path as a callback.
 
 ## Work Guidance
 

@@ -8,6 +8,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 ## Ownership
 
 - `auth/` — sign-in view + provider buttons (Google, GitHub, Web3). Drives `src/lib/auth`.
+- `oauth/` - explicit remote-agent consent UI. Displays only Core-validated
+  client/scopes/destination data, requires a separate approve or deny action,
+  and offers fresh Google/wallet proof when Core rejects stale authority.
 - `overview/` — dashboard home widgets (pie/area/bar graphs, recent models, quick start,
   about-grid) with skeleton variants for the parallel routes under `dashboard/overview/`.
 - `api-key/` — API-key view + account-keys management UI. Create/revoke failures
@@ -65,6 +68,9 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   explicit confirmation on the node. Never auto-approve on login or poll,
   request a node private key, or treat account association as ownership,
   recovery, payout delegation, or operator independence.
+- OAuth consent never treats login as approval and never exposes the Console
+  service key, Core user token, wallet key, or a reusable Grid API key. The
+  browser receives only bounded consent metadata and a validated final redirect.
 - Forms use React Hook Form + Zod schemas (e.g. `profile/utils/form-schema.ts`).
 - Funding may use any wallet that Core has verified on the canonical account.
   The funding selector renders only assets Core marks enabled; disabled future

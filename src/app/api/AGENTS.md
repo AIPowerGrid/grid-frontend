@@ -29,6 +29,10 @@ browser JavaScript.
   `validator-pairings/AGENTS.md`, including shared transport rules.
 - `account/validators/` and `[validatorId]/unlink/` - private associated-node
   listing and exact-pairing removal; use that same validator-pairing transport.
+- `oauth/authorization/` - protected consent inspection and approve/deny BFF.
+  It sends the scoped Console service key plus the user's Core token only from
+  the server, requires same-origin strict JSON for decisions, and accepts only
+  bounded/schema-valid Core responses.
 - `account/jobs/` — operator trust view (my workers' jobs + den + proof) via
   `/v1/account/jobs`.
 - `account/payout-preference/` — set payout asset / AIPG slice via the
@@ -60,6 +64,9 @@ browser JavaScript.
 - Do not add direct-database routes. Grid core owns persistence and authorization.
 - Worker-enrollment proxy calls must use the shared bounded timeout and return a
   no-store `502` when Core is unavailable. Never leave a pairing request hanging.
+- OAuth authorization routes never follow Core redirects. They return only
+  redacted error text and schema-valid consent metadata or an HTTPS/native-
+  loopback redirect. All responses are no-store and no-referrer.
 
 ## Work Guidance
 
@@ -68,9 +75,12 @@ browser JavaScript.
 
 ## Verification
 
-- `pnpm test:auth-smoke` and `pnpm test:validator-pairing` after `pnpm build`.
+- `pnpm test:auth-smoke`, `pnpm test:oauth-consent`, and
+  `pnpm test:validator-pairing` after `pnpm build`.
 
 ## Child DOX Index
 
 - [validator-pairings/AGENTS.md](validator-pairings/AGENTS.md) - bounded private
   account-pairing proxies and cross-origin protection.
+- [oauth/AGENTS.md](oauth/AGENTS.md) - bounded OAuth consent proxy and response
+  contracts.

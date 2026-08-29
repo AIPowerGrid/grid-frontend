@@ -17,4 +17,4 @@ export const proxy = auth((req) => {
   }
 });
 
-export const config = { matcher: ['/dashboard/:path*'] };
+export const config = { matcher: ['/dashboard/:path*', '/oauth/authorize'] };
