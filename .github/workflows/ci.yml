@@ -30,6 +30,8 @@ jobs:
         run: pnpm format:check
       - name: Lint
         run: pnpm lint:strict
+      - name: Test validator evidence metadata
+        run: pnpm test:validator-evidence
       - name: Build
         run: pnpm build
       - name: Test canonical account boundary
