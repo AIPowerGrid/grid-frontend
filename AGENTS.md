@@ -51,6 +51,10 @@ described as deployable until the build and Worker configuration land together.
   frozen-install Console verification plus checksum-verified tracked-tree and
   complete reachable-history scanning. Historical exceptions are exact
   reviewed fingerprints only.
+- **`package.json` / `pnpm-lock.yaml`** - frozen pnpm dependency graph.
+  Targeted security overrides keep Browserslist at patched 4.28.7 or later and
+  prevent vulnerable selector-parser 6.1.0-6.1.2 and incompatible 6.1.3 from returning. Faker is unused
+  and removed; do not restore demo-only dependencies to production tooling.
 - **`src/app/`** — App Router. `api/` = server route handlers (the BFF); `dashboard/` =
   authed pages; `(auth)/` = sign-in; `api-doc/` = hosted OpenAPI reference.
 - **`src/lib/`** — shared server infra: Auth.js config and the grid v1 client.
@@ -103,6 +107,9 @@ described as deployable until the build and Worker configuration land together.
 
 ## Verification
 
+- `pnpm test:css-variants` compiles actual Tailwind group, peer and data variants
+  and requires their selectors and declarations. A clean Next.js build alone
+  does not catch silently omitted interactive styles after parser changes.
 - `pnpm lint` (ESLint, `eslint-config-next`) and `pnpm format:check`
   (non-writing Prettier check).
 - `pnpm build` must succeed (typecheck runs in build). After building,

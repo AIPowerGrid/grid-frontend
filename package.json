@@ -25,6 +25,7 @@
     "test:validator-evidence": "node --test scripts/validator-evidence-test.mjs",
     "test:validator-compensation": "node --test scripts/validator-compensation-test.mjs",
     "test:validator-compensation-smoke": "node scripts/validator-compensation-smoke.mjs",
+    "test:css-variants": "node --test scripts/css-variants-test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
@@ -111,7 +112,6 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@faker-js/faker": "^9.9.0",
     "@types/sort-by": "^1.2.3",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -163,7 +163,9 @@
       "postcss@<8.5.10": ">=8.5.10",
       "sharp@<0.35.0": "0.35.3",
       "nanoid@>=3.0.0 <3.3.18": "3.3.18",
-      "nanoid@>=5.0.0 <5.1.16": "5.1.16"
+      "nanoid@>=5.0.0 <5.1.16": "5.1.16",
+      "browserslist@<4.28.7": "4.28.7",
+      "postcss-selector-parser@>=6.1.0 <6.1.4": "6.1.4"
     }
   }
 }
