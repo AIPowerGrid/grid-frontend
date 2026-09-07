@@ -1,5 +1,31 @@
 # Validator Consent: Dark Production Deployment
 
+## Security Follow-Up
+
+On September 7, 2026, 21:08-21:10 UTC, production was updated to reviewed
+PR29 merge `fecbe1c4cdf0f8db762ea2bafc16a8289173d4c7`. Immutable Vercel
+deployment `dpl_EhYyjjNvVv4Uq3TC7qjCfCmfM86W` is served at
+`https://grid-frontend-19fovepkr-ai-power-grids-projects.vercel.app` and selected
+by `console.aipowergrid.io`. Rollback is `dpl_7VSPXoHtntn5Nxg9qDK9HJ5peiNu`
+recorded below. A clean exact-source checkout was staged with `--skip-domain`,
+reached Ready, and was explicitly promoted under the same authorized dark
+rollout. No environment, schema or validator-economics settings changed.
+
+The patch removes unused Faker, pins patched Browserslist and selector-parser,
+and adds a required generated-CSS regression test. The initial patched parser
+6.1.3 silently omitted Tailwind group/peer variants despite a successful build;
+6.1.4 passes all four tested selectors/declarations. All PR and merged-source
+Console checks passed, along with local frozen install, audit (zero known
+findings), build, lint/format, and auth/key/OAuth/pairing/compensation tests.
+Vercel used the existing production environment and lockfile (reported pnpm
+9.15.9, versus locally pinned 9.15.5), compiled and typechecked successfully.
+
+Production rechecks passed: root/providers 200, payout consent page 302 with
+exact login callback and no-store/no-referrer, anonymous BFF 401, malformed ID
+404, and foreign-origin approval 403. These remain anonymous boundary tests,
+not a live human wallet-consent or payment proof. Core is now `84fe0fd6`/0039;
+observer and compensation remain disabled.
+
 ## Deployed Artifact
 
 - Date: September 7, 2026, approximately 20:29-20:32 UTC.

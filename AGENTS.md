@@ -128,8 +128,8 @@ described as deployable until the build and Worker configuration land together.
   Core until the node client and supervised rollout are complete.
 - `pnpm test:validator-compensation` validates the v1 message and exact amounts;
   after build, `pnpm test:validator-compensation-smoke` covers the protected
-  payout-consent BFF. Both run in CI. Commit `28dbf5f` is deployed on the Console;
-  Core `874f7407`/0039 remains default off. Real-PG cross-repo integration passed,
+  payout-consent BFF. Both run in CI. Commit `fecbe1c` is deployed on the Console;
+  Core `84fe0fd6`/0039 keeps compensation off. Real-PG cross-repo integration passed,
   but a live human consent check and pilot approval remain separate gates.
 - `pnpm test:validator-evidence` checks conservative scorecard metadata display.
   The required Console CI job runs it before building, including legacy,
