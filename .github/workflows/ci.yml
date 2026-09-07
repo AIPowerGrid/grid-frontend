@@ -32,6 +32,8 @@ jobs:
         run: pnpm lint:strict
       - name: Test validator evidence metadata
         run: pnpm test:validator-evidence
+      - name: Test validator payout consent contract
+        run: pnpm test:validator-compensation
       - name: Build
         run: pnpm build
       - name: Test canonical account boundary
@@ -42,3 +44,5 @@ jobs:
         run: pnpm test:oauth-consent
       - name: Test validator account pairing boundary
         run: pnpm test:validator-pairing
+      - name: Test validator compensation boundary
+        run: pnpm test:validator-compensation-smoke

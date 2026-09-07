@@ -11,6 +11,16 @@ validator economic authority or model-quality guarantees.
 - `components/validator-onboarding.tsx` - released local-app setup guidance;
   do not restore manual private-key/API-key entry as the default.
 - `components/validator-pairing.tsx` - protected, expiring approval page.
+- `components/validator-compensation.tsx` - private payout destination review.
+  Explicit wallet connect/prepare precedes a separate signature action; loading,
+  polling, reload and reauthentication never sign. Reconstruct the exact v1
+  consent, re-read before signing, and recheck selected account/Base chain before
+  and after the wallet prompt. Changed Console identity invalidates pending work.
+  Core verifies EOA/EIP-1271 signatures and ownership; a wallet response alone
+  is not approval. No transaction or token approval is requested.
+  This version discovers injected EIP-6963/legacy browser wallets; WalletConnect
+  mobile/Safe-app embedding is not implemented. Display that limitation, not a
+  dead connector. The payout recipient need not be the Console login wallet.
 - `components/pairing-step-up.tsx` - existing Google/SIWE sign-in buttons with
   a same-origin return path. Login never executes a pending action.
 - `components/linked-validators.tsx` - authenticated current associations and
@@ -55,6 +65,18 @@ rights, quorum seats, or independent-operator status. Removing it does not stop
 the node or change keys, balances, payout wallets, or evidence history.
 
 ## Verification
+
+- `pnpm test:validator-compensation` and, after build,
+  `pnpm test:validator-compensation-smoke`. For browser coverage set
+  `PLAYWRIGHT_MODULE` to an external Playwright module entry when running the
+  smoke. It uses synthetic Core data, generated wallet signatures and temporary
+  Auth.js cookies only; no real payment or Google login. Test 320/390/1280px,
+  explicit separate prepare/sign, reload without signing, and node-confirmation
+  status. Screenshots go to `QA_ARTIFACTS` or `/tmp/aipg-compensation-console-qa`.
+- Compensation remains unreleased/default-off pending Core/node/Console
+  integration, native qualification and approved pilot budget. A collected
+  wallet signature still requires local node consent and maintainer review;
+  it is not a finalized payment.
 
 - `pnpm lint:strict`, `pnpm format:check`, `pnpm build`.
 - `pnpm test:auth-smoke` and `pnpm test:validator-pairing` after the build.

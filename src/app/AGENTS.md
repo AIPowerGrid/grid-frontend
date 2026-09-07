@@ -13,6 +13,9 @@ public network/payout transparency, and the hosted API reference.
 - `dashboard/connect-validator/[pairingId]/` - protected, short-lived validator
   account-visibility approval. No-referrer metadata/HTTP header and frame denial
   protect the request URL and consent screen. Node confirmation remains local.
+- `dashboard/validator-payout/[requestId]/` - protected earned-allocation
+  destination approval. No-referrer, frame denial and no-store; login does not
+  sign, approve, or send a payment. Core's compensation API remains default off.
 - `oauth/authorize/` - protected, no-referrer OAuth consent page for an opaque,
   short-lived Core request capability. Login preserves only that exact
   capability; it never approves the client implicitly.

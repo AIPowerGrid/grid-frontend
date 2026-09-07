@@ -27,6 +27,9 @@ export function useBreadcrumbs() {
   const pathname = usePathname();
 
   const breadcrumbs = useMemo(() => {
+    if (/^\/dashboard\/validator-payout\/vpc_[0-9a-f]{64}$/.test(pathname)) {
+      return [{ title: 'Validator payout', link: pathname }];
+    }
     // Pairing IDs are opaque handles, not useful navigation labels.
     if (/^\/dashboard\/connect-validator\/vpa_[0-9a-f]{64}$/.test(pathname)) {
       return [{ title: 'Link validator', link: pathname }];

@@ -23,6 +23,9 @@ provisioning helpers, search parameters, and small shared utilities.
 - `validator-pairing.ts` - shared Zod display schemas and safe error messages.
   Contains no credentials or signing logic; strips node-only payloads at the
   BFF. Core remains authoritative for proof, ownership and state transitions.
+- `validator-compensation.ts` - strict Base/AIPG consent and bounded request
+  schemas, exact integer amount rendering and independently reconstructed
+  sorted v1 message/hash. Browser and BFF reject substituted signing text.
 - `searchparams.ts` — nuqs URL search-param parsers. `utils.ts` — `cn` + misc helpers.
 
 ## Local Contracts
