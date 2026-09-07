@@ -22,6 +22,7 @@
     "test:key-management": "node scripts/key-management-smoke.mjs",
     "test:oauth-consent": "node scripts/oauth-consent-smoke.mjs",
     "test:validator-pairing": "node scripts/validator-pairing-smoke.mjs",
+    "test:validator-evidence": "node --test scripts/validator-evidence-test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

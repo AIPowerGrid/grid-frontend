@@ -17,6 +17,9 @@ validator economic authority or model-quality guarantees.
   exact-association removal with confirmation.
 - `components/validator-scorecards-view.tsx` - existing aggregate health and
   evidence dimensions; private node links do not affect public aggregates.
+- `components/scorecard-context.tsx` and `evidence-context.ts` - bounded
+  display of Core's additive sampling and completed-probe timing metadata.
+  Legacy/malformed metadata stays unknown, never zero or recently probed.
 - Shared bounded display schemas: `src/lib/validator-pairing.ts`.
 - `src/hooks/use-breadcrumbs.tsx` uses a short consent-page label rather than
   displaying the opaque pairing ID in navigation.
@@ -55,6 +58,15 @@ the node or change keys, balances, payout wallets, or evidence history.
 
 - `pnpm lint:strict`, `pnpm format:check`, `pnpm build`.
 - `pnpm test:auth-smoke` and `pnpm test:validator-pairing` after the build.
+- `pnpm test:validator-evidence` exercises the sampling/timing display contract.
+- After building, `node scripts/validator-evidence-smoke.mjs` uses Playwright
+  against a loopback-only mock Core and the production Console build. Supply
+  `PLAYWRIGHT_MODULE` as an absolute module entry path if Playwright is external
+  to the repo; no dependency or lockfile changes are required. Screenshots go
+  to `QA_ARTIFACTS` (default `/tmp/aipg-evidence-qa`). Tests cover token forwarding,
+  anonymous rejection, metadata passthrough, 1440/768/375/320px layouts,
+  keyboard-accessible details, legacy/empty/error states, and stop both servers.
+  Synthetic sessions/data exist only in the test process, not production code.
 - `pnpm test:validator-pairing --ui` starts an isolated mock Core and Console
   with a fake local sign-in fixture. The fixture is test-process-only and never
   part of deployed App Router code. Stop it after browser QA.
@@ -63,6 +75,23 @@ the node or change keys, balances, payout wallets, or evidence history.
   desktop layouts. Mock confirmation is not proof of real node signing.
 - Real Windows/Linux pairing, end-to-end signature verification, and the
   production canary remain coordinated rollout gates, not Console smoke claims.
+
+## Scorecard Interpretation
+
+- Rates summarize attestation votes, not independent trials or model identity.
+  Keep votes, retained assignments, probe groups, and registered validators
+  distinct. Counts across rows can overlap; do not sum them into network-wide
+  independent sample counts. Missing or contradictory counts display Unknown.
+- `probe_freshness` uses completed Core assignment time. Its age is measured
+  at Core's snapshot, not a continuously refreshed clock. Show timestamp
+  coverage as timed votes / total, including partial coverage. Receipt time
+  (`last_seen`) remains separately labeled; never substitute it for probe time.
+- Independent samples and confidence intervals are not established by this
+  contract. The UI must not derive a confidence score from vote volume, quorum,
+  registration count, or passing rate. Evidence details state correlated-vote,
+  operator-independence and non-random workload limitations.
+- This is read-only display work. It does not enable fidelity assignments,
+  establish operator independence, change compensation, or authorize penalties.
 
 ## Child DOX Index
 

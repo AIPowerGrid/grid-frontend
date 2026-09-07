@@ -115,6 +115,9 @@ described as deployable until the build and Worker configuration land together.
 - `pnpm test:validator-pairing` exercises protected pairing routes against a
   local mock Core after the build. Account association remains default off in
   Core until the node client and supervised rollout are complete.
+- `pnpm test:validator-evidence` checks conservative scorecard metadata display.
+  The optional Playwright proxy/UI smoke and snapshot workflow is documented in
+  `src/features/validators/AGENTS.md`; fixtures never enter deployed routes.
 - `pnpm test:oauth-consent` exercises the protected OAuth consent BFF against a
   local mock Core: credential isolation, origin/body limits, response schemas,
   redirect refusal, account-bound refresh, and consent-page privacy headers.
