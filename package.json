@@ -23,6 +23,8 @@
     "test:oauth-consent": "node scripts/oauth-consent-smoke.mjs",
     "test:validator-pairing": "node scripts/validator-pairing-smoke.mjs",
     "test:validator-evidence": "node --test scripts/validator-evidence-test.mjs",
+    "test:validator-compensation": "node --test scripts/validator-compensation-test.mjs",
+    "test:validator-compensation-smoke": "node scripts/validator-compensation-smoke.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"

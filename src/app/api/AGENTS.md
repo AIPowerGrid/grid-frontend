@@ -27,6 +27,9 @@ browser JavaScript.
 - `validator-pairings/[pairingId]/` and `approve/` - authenticated inspect and
   approval of an existing node's optional account-visibility request. Owned by
   `validator-pairings/AGENTS.md`, including shared transport rules.
+- `validator-compensation/[requestId]/` plus `prepare/` and `approve/` -
+  private allocation-specific payout-wallet consent, owned by its nested
+  guide. No node confirmation, payment sender or activation endpoint.
 - `account/validators/` and `[validatorId]/unlink/` - private associated-node
   listing and exact-pairing removal; use that same validator-pairing transport.
 - `oauth/authorization/` - protected consent inspection and approve/deny BFF.
@@ -83,6 +86,9 @@ browser JavaScript.
   `pnpm test:validator-pairing` after `pnpm build`.
 
 ## Child DOX Index
+
+- [validator-compensation/AGENTS.md](validator-compensation/AGENTS.md) - private
+  payout consent, message/hash validation and bounded signature forwarding.
 
 - [validator-pairings/AGENTS.md](validator-pairings/AGENTS.md) - bounded private
   account-pairing proxies and cross-origin protection.

@@ -3,6 +3,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/dashboard/validator-payout/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'Cache-Control', value: 'no-store' }
+        ]
+      },
+      {
         source: '/dashboard/connect-validator/:path*',
         headers: [
           { key: 'Referrer-Policy', value: 'no-referrer' },

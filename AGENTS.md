@@ -115,6 +115,10 @@ described as deployable until the build and Worker configuration land together.
 - `pnpm test:validator-pairing` exercises protected pairing routes against a
   local mock Core after the build. Account association remains default off in
   Core until the node client and supervised rollout are complete.
+- `pnpm test:validator-compensation` validates the v1 message and exact amounts;
+  after build, `pnpm test:validator-compensation-smoke` covers the protected
+  payout-consent BFF. Both run in CI. Source UI is not a compensation rollout;
+  Core PR127/0039 remains default off pending full integration and pilot approval.
 - `pnpm test:validator-evidence` checks conservative scorecard metadata display.
   The required Console CI job runs it before building, including legacy,
   malformed, inconsistent-count and missing/future-time cases.
