@@ -92,6 +92,11 @@ the node or change keys, balances, payout wallets, or evidence history.
   operator-independence and non-random workload limitations.
 - This is read-only display work. It does not enable fidelity assignments,
   establish operator independence, change compensation, or authorize penalties.
+- Redacted scorecards use Core's account-read endpoint, so a Google-only or
+  service-refreshed account needs no wallet or registered node. Private node
+  health is optional: denial, outage or malformed JSON must not hide valid
+  scorecards or fabricate zero counts, a dark budget, or empty node history.
+  Hide unavailable node-only sections and display an unavailable status.
 
 ## Child DOX Index
 

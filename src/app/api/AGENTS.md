@@ -50,6 +50,10 @@ browser JavaScript.
   informational only, no raw evidence, independent-quorum claim, or economic
   effects. Preserve bounded `limit` and `since_hours` filters so the console's
   selected evidence window matches Core's aggregate health window.
+  The scorecard proxy uses `/v1/account/validator-scorecards` with ordinary
+  `account.read` authority, a bounded timeout and redirect refusal. It must not
+  require a fresh management proof or silently fall back to a node credential.
+  Assignment health remains on its private active-validator route.
 - `sentry/workerRewards/[address]/` — wallet earnings via grid v1 (validates `0x` address).
 
 ## Local Contracts

@@ -2580,6 +2580,136 @@
         "summary": "Get Account Payouts"
       }
     },
+    "/v1/account/validator-scorecards": {
+      "get": {
+        "description": "Read redacted network evidence without registering a validator node.\n\nAccount-read authority grants no private assignment health, node identity,\nwork allocation, probe execution or attestation permission.",
+        "operationId": "account_validator_scorecards_v1_account_validator_scorecards_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since_hours",
+            "required": false,
+            "schema": {
+              "default": 168,
+              "maximum": 2160,
+              "minimum": 1,
+              "title": "Since Hours",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "worker_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Worker Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model"
+            }
+          },
+          {
+            "in": "query",
+            "name": "authority",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "pattern": "^(all|preview|authoritative)$",
+              "title": "Authority",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "apikey",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Apikey"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Account Validator Scorecards"
+      }
+    },
     "/v1/account/workers": {
       "get": {
         "description": "Workers registered to the signed-in account, with live online status.\n\nOwnership is by account_id (workers connect with just an API key). `online`\nis the live Redis presence set; den_earned/jobs_completed are the running\ncounters (authoritative totals always derivable from the ledger).",

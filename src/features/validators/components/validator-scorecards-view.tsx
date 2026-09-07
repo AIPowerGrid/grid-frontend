@@ -286,29 +286,28 @@ export default function ValidatorScorecardsView() {
         const [res, healthRes] = await Promise.all([
           fetch(
             `/api/validator/scorecards?limit=100&since_hours=${windowHours}&authority=${authority}`,
-            { cache: 'no-store' }
+            { cache: 'no-store', signal: AbortSignal.timeout(15_000) }
           ),
           fetch(
             `/api/validator/assignments/health?limit=25&since_hours=${windowHours}`,
-            { cache: 'no-store' }
-          )
+            { cache: 'no-store', signal: AbortSignal.timeout(15_000) }
+          ).catch(() => null)
         ]);
         if (!res.ok) {
           if (res.status === 404) {
             throw new Error('Sign in with a Grid account to view scorecards.');
           }
           if (res.status === 403) {
-            throw new Error('Validator scorecards require a v2 Grid API key.');
+            throw new Error('This account cannot read validator evidence.');
           }
           throw new Error('Validator scorecards are unavailable right now.');
         }
-        if (!healthRes.ok) {
-          throw new Error(
-            'Validator assignment health is unavailable right now.'
-          );
-        }
         const nextData = (await res.json()) as ScorecardsResponse;
-        const nextHealth = (await healthRes.json()) as AssignmentHealthResponse;
+        const nextHealth = healthRes?.ok
+          ? ((await healthRes
+              .json()
+              .catch(() => null)) as AssignmentHealthResponse | null)
+          : null;
         if (!cancelled) {
           setData(nextData);
           setHealth(nextHealth);
@@ -434,74 +433,79 @@ export default function ValidatorScorecardsView() {
         </AlertDescription>
       </Alert>
 
-      <Card>
-        <CardContent className='grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center'>
-          <div className='space-y-2'>
-            <div className='flex flex-wrap items-center gap-2'>
-              <h2 className='font-semibold'>Audit worker compensation</h2>
-              <Badge
-                variant={
-                  health?.paid_audit?.policy.enabled
-                    ? 'default'
+      {health?.paid_audit && (
+        <Card>
+          <CardContent className='grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center'>
+            <div className='space-y-2'>
+              <div className='flex flex-wrap items-center gap-2'>
+                <h2 className='font-semibold'>Audit worker compensation</h2>
+                <Badge
+                  variant={
+                    health?.paid_audit?.policy.enabled
+                      ? 'default'
+                      : health?.paid_audit?.policy.requested
+                        ? 'destructive'
+                        : 'secondary'
+                  }
+                >
+                  {health?.paid_audit?.policy.enabled
+                    ? 'Pilot enabled'
                     : health?.paid_audit?.policy.requested
-                      ? 'destructive'
-                      : 'secondary'
-                }
-              >
-                {health?.paid_audit?.policy.enabled
-                  ? 'Pilot enabled'
-                  : health?.paid_audit?.policy.requested
-                    ? 'Configuration blocked'
-                    : 'Dark'}
-              </Badge>
-            </div>
-            <p className='text-sm text-muted-foreground'>
-              Target-worker den only. Validator rewards, routing authority, and
-              slashing remain off.
-            </p>
-            {health?.paid_audit?.policy.reasons.length ? (
-              <p className='text-sm text-destructive'>
-                {health.paid_audit.policy.reasons.join(' · ')}
+                      ? 'Configuration blocked'
+                      : 'Dark'}
+                </Badge>
+              </div>
+              <p className='text-sm text-muted-foreground'>
+                Target-worker den only. Validator rewards, routing authority,
+                and slashing remain off.
               </p>
-            ) : null}
-          </div>
-          <div className='grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4 md:grid-cols-2'>
-            <div>
-              <div className='text-muted-foreground'>Reviewed wallets</div>
-              <div className='font-medium tabular-nums'>
-                {fmtNumber(
-                  health?.paid_audit?.policy.reviewed_wallet_count ?? 0
-                )}
+              {health?.paid_audit?.policy.reasons.length ? (
+                <p className='text-sm text-destructive'>
+                  {health.paid_audit.policy.reasons.join(' · ')}
+                </p>
+              ) : null}
+            </div>
+            <div className='grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4 md:grid-cols-2'>
+              <div>
+                <div className='text-muted-foreground'>Reviewed wallets</div>
+                <div className='font-medium tabular-nums'>
+                  {fmtNumber(
+                    health?.paid_audit?.policy.reviewed_wallet_count ?? 0
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className='text-muted-foreground'>Per-job cap</div>
+                <div className='font-medium tabular-nums'>
+                  {fmtNumber(
+                    health?.paid_audit?.policy.max_den_per_job ?? 0,
+                    2
+                  )}{' '}
+                  den
+                </div>
+              </div>
+              <div>
+                <div className='text-muted-foreground'>Spent today</div>
+                <div className='font-medium tabular-nums'>
+                  {fmtNumber(health?.paid_audit?.budget?.spent_den ?? 0, 2)} den
+                </div>
+              </div>
+              <div>
+                <div className='text-muted-foreground'>Remaining</div>
+                <div className='font-medium tabular-nums'>
+                  {fmtNumber(
+                    health?.paid_audit?.budget?.remaining_den ??
+                      health?.paid_audit?.policy.daily_den ??
+                      0,
+                    2
+                  )}{' '}
+                  den
+                </div>
               </div>
             </div>
-            <div>
-              <div className='text-muted-foreground'>Per-job cap</div>
-              <div className='font-medium tabular-nums'>
-                {fmtNumber(health?.paid_audit?.policy.max_den_per_job ?? 0, 2)}{' '}
-                den
-              </div>
-            </div>
-            <div>
-              <div className='text-muted-foreground'>Spent today</div>
-              <div className='font-medium tabular-nums'>
-                {fmtNumber(health?.paid_audit?.budget?.spent_den ?? 0, 2)} den
-              </div>
-            </div>
-            <div>
-              <div className='text-muted-foreground'>Remaining</div>
-              <div className='font-medium tabular-nums'>
-                {fmtNumber(
-                  health?.paid_audit?.budget?.remaining_den ??
-                    health?.paid_audit?.policy.daily_den ??
-                    0,
-                  2
-                )}{' '}
-                den
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
         <StatCard
@@ -530,271 +534,288 @@ export default function ValidatorScorecardsView() {
         />
       </div>
 
-      <div className='grid gap-4 lg:grid-cols-4'>
-        <StatCard
-          label='Pending evidence'
-          value={showStats ? (health?.quorum.pending ?? 0) : '—'}
-          hint='Awaiting assignment evidence'
-          icon={GitBranch}
-        />
-        <StatCard
-          label='Accepted evidence'
-          value={showStats ? (health?.quorum.accepted ?? 0) : '—'}
-          hint='Groups meeting threshold'
-          icon={CheckCircle2}
-        />
-        <StatCard
-          label='Disputed evidence'
-          value={showStats ? (health?.quorum.disputed ?? 0) : '—'}
-          hint='Validators disagree'
-          icon={ShieldAlert}
-        />
-        <StatCard
-          label='Finalized'
-          value={showStats ? (health?.quorum.finalized ?? 0) : '—'}
-          hint='Closed group windows'
-          icon={ShieldCheck}
-        />
-      </div>
-
-      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-5'>
-        <StatCard
-          label='Probes completed'
-          value={showStats ? (health?.stages?.probes_completed ?? 0) : '—'}
-          hint='Targeted jobs returned'
-          icon={Activity}
-        />
-        <StatCard
-          label='Evidence accepted'
-          value={
-            showStats
-              ? (health?.stages?.authoritative_evidence_accepted ?? 0)
-              : '—'
-          }
-          hint='Bound signed votes'
-          icon={CheckCircle2}
-        />
-        <StatCard
-          label='Workers passed'
-          value={showStats ? (health?.stages?.workers_passed ?? 0) : '—'}
-          hint='Healthy quorum outcome'
-          icon={ShieldCheck}
-        />
-        <StatCard
-          label='Quorum reached'
-          value={showStats ? (health?.stages?.quorum_reached ?? 0) : '—'}
-          hint={`${health?.quorum_policy?.threshold ?? 3}-of-${health?.quorum_policy?.target_validators ?? 5} agreement`}
-          icon={GitBranch}
-        />
-        <StatCard
-          label='Groups finalized'
-          value={showStats ? (health?.stages?.groups_finalized ?? 0) : '—'}
-          hint='Expired and closed'
-          icon={ShieldCheck}
-        />
-      </div>
-
-      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-        <StatCard
-          label='Registered active'
-          value={showStats ? (health?.validators?.active ?? 0) : '—'}
-          hint='Accounts, not independence proof'
-          icon={Users}
-        />
-        <StatCard
-          label='Fresh heartbeats'
-          value={showStats ? (health?.validators?.heartbeat_fresh ?? 0) : '—'}
-          hint='Recently online'
-          icon={Activity}
-        />
-        <StatCard
-          label='Participating (24h)'
-          value={showStats ? (health?.validators?.participating_24h ?? 0) : '—'}
-          hint='Distinct evidence signers'
-          icon={ShieldCheck}
-        />
-        <StatCard
-          label='Verified independent'
-          value={
-            showStats
-              ? (health?.network?.operator_independence.verified ?? 0)
-              : '—'
-          }
-          hint={
-            health?.network?.operator_independence.proven
-              ? `${health.network.operator_independence.participating ?? 0} participating in this window`
-              : `Need ${health?.network?.operator_independence.minimum ?? 3} reviewed operators`
-          }
-          icon={
-            health?.network?.operator_independence.proven
-              ? ShieldCheck
-              : ShieldAlert
-          }
-        />
-      </div>
-
-      <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-        <StatCard
-          label='Agreement rate'
-          value={showStats ? fmtPct(health?.network?.agreement_rate) : '—'}
-          hint='Votes matching group plurality'
-          icon={Gauge}
-        />
-        <StatCard
-          label='Dispute rate'
-          value={showStats ? fmtPct(health?.network?.disputed_rate) : '—'}
-          hint='Evidence groups with dissent'
-          icon={ShieldAlert}
-        />
-        <StatCard
-          label='Worker coverage'
-          value={showStats ? (health?.network?.coverage.workers ?? 0) : '—'}
-          hint={`${health?.network?.window_hours ?? windowHours}h evidence window`}
-          icon={Activity}
-        />
-        <StatCard
-          label='Model coverage'
-          value={showStats ? (health?.network?.coverage.models ?? 0) : '—'}
-          hint={`${health?.network?.authoritative_votes ?? 0} signed votes`}
-          icon={GitBranch}
-        />
-      </div>
-
-      <Card>
-        <CardContent className='space-y-3 p-5'>
-          <div>
-            <h2 className='font-semibold'>Validator Software</h2>
-            <p className='text-sm text-muted-foreground'>
-              Versions reported by active validators with fresh heartbeats.
-            </p>
+      {health ? (
+        <>
+          <div className='grid gap-4 lg:grid-cols-4'>
+            <StatCard
+              label='Pending evidence'
+              value={showStats ? (health?.quorum.pending ?? 0) : '—'}
+              hint='Awaiting assignment evidence'
+              icon={GitBranch}
+            />
+            <StatCard
+              label='Accepted evidence'
+              value={showStats ? (health?.quorum.accepted ?? 0) : '—'}
+              hint='Groups meeting threshold'
+              icon={CheckCircle2}
+            />
+            <StatCard
+              label='Disputed evidence'
+              value={showStats ? (health?.quorum.disputed ?? 0) : '—'}
+              hint='Validators disagree'
+              icon={ShieldAlert}
+            />
+            <StatCard
+              label='Finalized'
+              value={showStats ? (health?.quorum.finalized ?? 0) : '—'}
+              hint='Closed group windows'
+              icon={ShieldCheck}
+            />
           </div>
-          <div className='flex flex-wrap gap-2'>
-            {health?.network?.software_versions.length ? (
-              health.network.software_versions.map((item) => (
-                <Badge key={item.version} variant='outline'>
-                  {item.version} · {item.validators}
+
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-5'>
+            <StatCard
+              label='Probes completed'
+              value={showStats ? (health?.stages?.probes_completed ?? 0) : '—'}
+              hint='Targeted jobs returned'
+              icon={Activity}
+            />
+            <StatCard
+              label='Evidence accepted'
+              value={
+                showStats
+                  ? (health?.stages?.authoritative_evidence_accepted ?? 0)
+                  : '—'
+              }
+              hint='Bound signed votes'
+              icon={CheckCircle2}
+            />
+            <StatCard
+              label='Workers passed'
+              value={showStats ? (health?.stages?.workers_passed ?? 0) : '—'}
+              hint='Healthy quorum outcome'
+              icon={ShieldCheck}
+            />
+            <StatCard
+              label='Quorum reached'
+              value={showStats ? (health?.stages?.quorum_reached ?? 0) : '—'}
+              hint={`${health?.quorum_policy?.threshold ?? 3}-of-${health?.quorum_policy?.target_validators ?? 5} agreement`}
+              icon={GitBranch}
+            />
+            <StatCard
+              label='Groups finalized'
+              value={showStats ? (health?.stages?.groups_finalized ?? 0) : '—'}
+              hint='Expired and closed'
+              icon={ShieldCheck}
+            />
+          </div>
+
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <StatCard
+              label='Registered active'
+              value={showStats ? (health?.validators?.active ?? 0) : '—'}
+              hint='Accounts, not independence proof'
+              icon={Users}
+            />
+            <StatCard
+              label='Fresh heartbeats'
+              value={
+                showStats ? (health?.validators?.heartbeat_fresh ?? 0) : '—'
+              }
+              hint='Recently online'
+              icon={Activity}
+            />
+            <StatCard
+              label='Participating (24h)'
+              value={
+                showStats ? (health?.validators?.participating_24h ?? 0) : '—'
+              }
+              hint='Distinct evidence signers'
+              icon={ShieldCheck}
+            />
+            <StatCard
+              label='Verified independent'
+              value={
+                showStats
+                  ? (health?.network?.operator_independence.verified ?? 0)
+                  : '—'
+              }
+              hint={
+                health?.network?.operator_independence.proven
+                  ? `${health.network.operator_independence.participating ?? 0} participating in this window`
+                  : `Need ${health?.network?.operator_independence.minimum ?? 3} reviewed operators`
+              }
+              icon={
+                health?.network?.operator_independence.proven
+                  ? ShieldCheck
+                  : ShieldAlert
+              }
+            />
+          </div>
+
+          <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <StatCard
+              label='Agreement rate'
+              value={showStats ? fmtPct(health?.network?.agreement_rate) : '—'}
+              hint='Votes matching group plurality'
+              icon={Gauge}
+            />
+            <StatCard
+              label='Dispute rate'
+              value={showStats ? fmtPct(health?.network?.disputed_rate) : '—'}
+              hint='Evidence groups with dissent'
+              icon={ShieldAlert}
+            />
+            <StatCard
+              label='Worker coverage'
+              value={showStats ? (health?.network?.coverage.workers ?? 0) : '—'}
+              hint={`${health?.network?.window_hours ?? windowHours}h evidence window`}
+              icon={Activity}
+            />
+            <StatCard
+              label='Model coverage'
+              value={showStats ? (health?.network?.coverage.models ?? 0) : '—'}
+              hint={`${health?.network?.authoritative_votes ?? 0} signed votes`}
+              icon={GitBranch}
+            />
+          </div>
+
+          <Card>
+            <CardContent className='space-y-3 p-5'>
+              <div>
+                <h2 className='font-semibold'>Validator Software</h2>
+                <p className='text-sm text-muted-foreground'>
+                  Versions reported by active validators with fresh heartbeats.
+                </p>
+              </div>
+              <div className='flex flex-wrap gap-2'>
+                {health?.network?.software_versions.length ? (
+                  health.network.software_versions.map((item) => (
+                    <Badge key={item.version} variant='outline'>
+                      {item.version} · {item.validators}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className='text-sm text-muted-foreground'>
+                    No fresh validator versions reported.
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className='space-y-4 p-5'>
+              <div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
+                <div>
+                  <h2 className='font-semibold'>Probe Group Health</h2>
+                  <p className='text-sm text-muted-foreground'>
+                    Validators receive separate nonces and challenge instances
+                    for the same target and capability lane. One registered
+                    validator gets one vote per group.
+                  </p>
+                </div>
+                <Badge variant='outline'>
+                  economic_effect={health?.economic_effect ?? 'none'}
                 </Badge>
-              ))
-            ) : (
-              <span className='text-sm text-muted-foreground'>
-                No fresh validator versions reported.
-              </span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              </div>
 
-      <Card>
-        <CardContent className='space-y-4 p-5'>
-          <div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
-            <div>
-              <h2 className='font-semibold'>Probe Group Health</h2>
-              <p className='text-sm text-muted-foreground'>
-                Validators receive separate nonces and challenge instances for
-                the same target and capability lane. One registered validator
-                gets one vote per group.
-              </p>
-            </div>
-            <Badge variant='outline'>
-              economic_effect={health?.economic_effect ?? 'none'}
-            </Badge>
-          </div>
-
-          {loading ? (
-            <ScorecardsSkeleton />
-          ) : error ? (
-            <div className='rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'>
-              {error}
-            </div>
-          ) : health?.recent?.length ? (
-            <div className='overflow-x-auto'>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Probe group</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Validators</TableHead>
-                    <TableHead>Quorum</TableHead>
-                    <TableHead className='text-right'>Expires</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {health.recent.map((item) => (
-                    <TableRow key={item.probe_group_id}>
-                      <TableCell className='min-w-56'>
-                        <div className='space-y-1'>
-                          <div className='font-mono text-xs'>
-                            {item.probe_group_id}
-                          </div>
-                          <div className='flex flex-wrap gap-1'>
-                            <Badge variant='secondary'>{item.modality}</Badge>
-                            <Badge variant='outline'>{item.capability}</Badge>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className='min-w-52'>
-                        <div className='space-y-1'>
-                          <div className='font-mono text-xs'>
-                            {item.target_worker_id}
-                          </div>
-                          <div className='line-clamp-1 text-xs text-muted-foreground'>
-                            {item.model}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className='whitespace-nowrap tabular-nums'>
-                        {item.attested_validators} attested /{' '}
-                        {item.assigned_validators} assigned
-                        <div className='text-xs text-muted-foreground'>
-                          threshold {item.threshold} · target{' '}
-                          {item.target_validators}
-                        </div>
-                        <div className='text-xs text-muted-foreground'>
-                          {item.independent_attested_operators ?? 0} independent
-                          {' / '}
-                          {item.threshold} required
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex flex-wrap gap-1'>
-                          {quorumBadge(item.quorum_status)}
-                          {item.quorum_outcome ? (
-                            <Badge variant='outline'>
-                              {item.quorum_outcome}
-                            </Badge>
-                          ) : null}
-                          <Badge
-                            variant={
-                              item.independent_quorum_reached
-                                ? 'default'
-                                : 'outline'
-                            }
-                          >
-                            {item.independent_quorum_reached
-                              ? 'independent quorum'
-                              : ['accepted', 'finalized'].includes(
-                                    item.quorum_status
-                                  )
-                                ? 'registration quorum only'
-                                : 'independence pending'}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className='whitespace-nowrap text-right'>
-                        {fmtTime(item.expires)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className='rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground'>
-              No shared validator probe groups issued yet.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {loading ? (
+                <ScorecardsSkeleton />
+              ) : error ? (
+                <div className='rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive'>
+                  {error}
+                </div>
+              ) : health?.recent?.length ? (
+                <div className='overflow-x-auto'>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Probe group</TableHead>
+                        <TableHead>Target</TableHead>
+                        <TableHead>Validators</TableHead>
+                        <TableHead>Quorum</TableHead>
+                        <TableHead className='text-right'>Expires</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {health.recent.map((item) => (
+                        <TableRow key={item.probe_group_id}>
+                          <TableCell className='min-w-56'>
+                            <div className='space-y-1'>
+                              <div className='font-mono text-xs'>
+                                {item.probe_group_id}
+                              </div>
+                              <div className='flex flex-wrap gap-1'>
+                                <Badge variant='secondary'>
+                                  {item.modality}
+                                </Badge>
+                                <Badge variant='outline'>
+                                  {item.capability}
+                                </Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className='min-w-52'>
+                            <div className='space-y-1'>
+                              <div className='font-mono text-xs'>
+                                {item.target_worker_id}
+                              </div>
+                              <div className='line-clamp-1 text-xs text-muted-foreground'>
+                                {item.model}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className='whitespace-nowrap tabular-nums'>
+                            {item.attested_validators} attested /{' '}
+                            {item.assigned_validators} assigned
+                            <div className='text-xs text-muted-foreground'>
+                              threshold {item.threshold} · target{' '}
+                              {item.target_validators}
+                            </div>
+                            <div className='text-xs text-muted-foreground'>
+                              {item.independent_attested_operators ?? 0}{' '}
+                              independent
+                              {' / '}
+                              {item.threshold} required
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className='flex flex-wrap gap-1'>
+                              {quorumBadge(item.quorum_status)}
+                              {item.quorum_outcome ? (
+                                <Badge variant='outline'>
+                                  {item.quorum_outcome}
+                                </Badge>
+                              ) : null}
+                              <Badge
+                                variant={
+                                  item.independent_quorum_reached
+                                    ? 'default'
+                                    : 'outline'
+                                }
+                              >
+                                {item.independent_quorum_reached
+                                  ? 'independent quorum'
+                                  : ['accepted', 'finalized'].includes(
+                                        item.quorum_status
+                                      )
+                                    ? 'registration quorum only'
+                                    : 'independence pending'}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className='whitespace-nowrap text-right'>
+                            {fmtTime(item.expires)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className='rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground'>
+                  No shared validator probe groups issued yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : !loading && !error ? (
+        <p role='status' className='text-sm text-muted-foreground'>
+          Node assignment health is unavailable for this account.
+        </p>
+      ) : null}
 
       <Card>
         <CardContent className='space-y-4 p-5'>
