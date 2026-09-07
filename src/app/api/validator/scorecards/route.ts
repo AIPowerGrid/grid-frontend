@@ -26,13 +26,14 @@ async function jsonOrError(res: Response) {
 
 /** Aggregate validator evidence scorecards.
  *
- * This proxies grid /v1/validator/scorecards with the signed-in account's v2
- * key. V0 scorecards are informational only and have no routing/reward/slash
+ * This proxies grid /v1/account/validator-scorecards with the signed-in account's
+ * read token. V0 scorecards are informational only and have no routing/reward/slash
  * effect.
  */
 export async function GET(req: NextRequest) {
+  const signal = AbortSignal.timeout(10_000);
   const token = await getSessionToken(req);
-  const key = await resolveGridKey(token);
+  const key = await resolveGridKey(token, signal);
   if (!key) {
     return NextResponse.json({ error: 'No grid account' }, { status: 404 });
   }
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
     1,
     24 * 90
   );
-  const upstream = new URL('/v1/validator/scorecards', GRID_API_BASE);
+  const upstream = new URL('/v1/account/validator-scorecards', GRID_API_BASE);
   upstream.searchParams.set('limit', String(limit));
   upstream.searchParams.set('since_hours', String(sinceHours));
 
@@ -65,7 +66,9 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(upstream, {
       headers: { apikey: key },
-      cache: 'no-store'
+      cache: 'no-store',
+      redirect: 'error',
+      signal
     });
     return NextResponse.json(await jsonOrError(res), { status: res.status });
   } catch {

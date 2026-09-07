@@ -86,7 +86,7 @@ function scorecards() {
 const core = http.createServer((req, res) => {
   res.setHeader('Content-Type', 'application/json');
   try {
-    if (req.url.startsWith('/v1/validator/scorecards')) {
+    if (req.url.startsWith('/v1/account/validator-scorecards')) {
       assert.equal(req.headers.apikey, userToken);
       forwarded++;
       res.statusCode = mode === 'unavailable' ? 503 : 200;
@@ -97,6 +97,15 @@ const core = http.createServer((req, res) => {
       );
     }
     if (req.url.startsWith('/v1/validator/assignments/health')) {
+      if (mode.startsWith('health-')) {
+        res.statusCode =
+          mode === 'health-denied'
+            ? 403
+            : mode === 'health-malformed'
+              ? 200
+              : 503;
+        return res.end(mode === 'health-malformed' ? 'not-json' : '{}');
+      }
       return res.end(
         JSON.stringify({
           quorum: { pending: 0, accepted: 1, disputed: 0, finalized: 0 },
@@ -269,6 +278,36 @@ try {
       .getByText('Unknown registered validators', { exact: true })
       .isVisible()
   );
+  for (const healthMode of [
+    'health-denied',
+    'health-unavailable',
+    'health-malformed'
+  ]) {
+    mode = healthMode;
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    await page
+      .getByText('Node assignment health is unavailable for this account.', {
+        exact: true
+      })
+      .waitFor();
+    await page
+      .getByRole('button', { name: 'Evidence limits for synthetic-worker' })
+      .waitFor();
+    assert.equal(
+      await page.getByText('Pending evidence', { exact: true }).count(),
+      0
+    );
+    assert.equal(
+      await page
+        .getByRole('heading', { name: 'Audit worker compensation' })
+        .count(),
+      0
+    );
+    assert.equal(
+      await page.getByRole('heading', { name: 'Probe Group Health' }).count(),
+      0
+    );
+  }
   mode = 'empty';
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await page
@@ -284,7 +323,7 @@ try {
   assert.deepEqual(mockErrors, []);
   assert.ok(forwarded >= 8);
   console.log(
-    `Evidence proxy + UI passed: 4 viewports, keyboard details, legacy/empty/error. Screenshots: ${artifacts}`
+    `Evidence proxy + UI passed: account-read endpoint, 4 viewports, keyboard details, legacy/empty/error, optional denied/unavailable/malformed node health. Screenshots: ${artifacts}`
   );
 } finally {
   if (browser) await browser.close();
