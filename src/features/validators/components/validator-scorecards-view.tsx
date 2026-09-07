@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/table';
 import ValidatorOnboarding from './validator-onboarding';
 import LinkedValidators from './linked-validators';
+import { ScorecardFreshness, ScorecardSamples } from './scorecard-context';
+import type { EvidenceMetadata } from '../evidence-context';
 
 type WindowHours = 24 | 168 | 720;
 type AuthorityMode = 'all' | 'authoritative' | 'preview';
@@ -40,7 +42,7 @@ type ScoreDimension =
   | 'quality'
   | 'fidelity';
 
-interface ScorecardItem {
+interface ScorecardItem extends EvidenceMetadata {
   subject_type: 'worker' | 'model' | string;
   subject_id: string;
   worker_id: string | null;
@@ -66,6 +68,9 @@ interface ScorecardItem {
 }
 
 interface ScorecardsResponse {
+  generated_at?: string;
+  rate_basis?: string;
+  window_basis?: string;
   items: ScorecardItem[];
   count: number;
   window_hours: number;
@@ -221,7 +226,7 @@ function verdictBadge(item: ScorecardItem) {
   if (item.slow_rate >= 0.25) return <Badge variant='outline'>Slow</Badge>;
   return (
     <Badge className='border-transparent bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/15'>
-      Healthy
+      Passing votes
     </Badge>
   );
 }
@@ -363,7 +368,7 @@ export default function ValidatorScorecardsView() {
   const showStats = !loading && !error;
 
   return (
-    <div className='mx-auto w-full max-w-6xl space-y-6'>
+    <div className='mx-auto w-full min-w-0 max-w-6xl space-y-6 [contain:inline-size]'>
       <PageHeader
         title='Validator Evidence'
         description='Registered validator observations across Grid workers and models.'
@@ -797,8 +802,12 @@ export default function ValidatorScorecardsView() {
             <div>
               <h2 className='font-semibold'>Scorecards</h2>
               <p className='text-sm text-muted-foreground'>
-                Evidence is separated by protocol, capability, quality, and
-                fidelity instead of presenting every passing probe as quality.
+                Observed votes, not a model-identity guarantee. Independent
+                sample counts and statistical confidence are not established.
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                Window: evidence received. Snapshot:{' '}
+                {fmtTime(data?.generated_at ?? null)}
               </p>
             </div>
             <Badge variant='outline'>
@@ -821,12 +830,15 @@ export default function ValidatorScorecardsView() {
                     <TableHead>Model</TableHead>
                     <TableHead>Authority</TableHead>
                     <TableHead>Evidence type</TableHead>
-                    <TableHead>Health</TableHead>
-                    <TableHead className='text-right'>Total</TableHead>
+                    <TableHead>Vote result</TableHead>
+                    <TableHead>Samples</TableHead>
                     <TableHead className='text-right'>Slow</TableHead>
                     <TableHead className='text-right'>Failed</TableHead>
                     <TableHead className='text-right'>Latency</TableHead>
-                    <TableHead className='text-right'>Last seen</TableHead>
+                    <TableHead>Latest known probe</TableHead>
+                    <TableHead className='text-right'>
+                      Evidence received
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -879,15 +891,15 @@ export default function ValidatorScorecardsView() {
                           {verdictBadge(item)}
                           <Progress
                             value={Math.round(item.healthy_rate * 100)}
-                            aria-label='Healthy evidence rate'
+                            aria-label='Passing vote rate'
                           />
                           <div className='text-xs text-muted-foreground'>
-                            {pct(item.healthy_rate)} healthy
+                            {pct(item.healthy_rate)} passing votes
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className='text-right tabular-nums'>
-                        {item.total.toLocaleString()}
+                      <TableCell>
+                        <ScorecardSamples item={item} />
                       </TableCell>
                       <TableCell className='text-right tabular-nums'>
                         {fmtNumber(item.slow)}
@@ -897,6 +909,9 @@ export default function ValidatorScorecardsView() {
                       </TableCell>
                       <TableCell className='text-right tabular-nums'>
                         {fmtLatency(item.avg_latency_ms)}
+                      </TableCell>
+                      <TableCell>
+                        <ScorecardFreshness item={item} />
                       </TableCell>
                       <TableCell className='whitespace-nowrap text-right'>
                         {fmtTime(item.last_seen)}
