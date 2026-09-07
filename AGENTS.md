@@ -63,6 +63,10 @@ described as deployable until the build and Worker configuration land together.
   capability-bound `/oauth/authorize` consent page.
 - **`public/`** — static assets. **Root config** — `next.config.js`, `next.config.mjs`,
   `tailwind.config.js`, `tsconfig.json`, `env.example.txt`, `vercel.json`.
+- **`VALIDATOR_CONSENT_DEPLOYMENT_2026_09_07.md`** - production deployment
+  of the reviewed compensation page and BFF, anonymous rejection checks, dark
+  Core state and rollback target. Deployment is not live recipient consent or
+  permission to start a paid pilot.
 
 ## Local Contracts
 
@@ -117,8 +121,9 @@ described as deployable until the build and Worker configuration land together.
   Core until the node client and supervised rollout are complete.
 - `pnpm test:validator-compensation` validates the v1 message and exact amounts;
   after build, `pnpm test:validator-compensation-smoke` covers the protected
-  payout-consent BFF. Both run in CI. Source UI is not a compensation rollout;
-  Core PR127/0039 remains default off pending full integration and pilot approval.
+  payout-consent BFF. Both run in CI. Commit `28dbf5f` is deployed on the Console;
+  Core `874f7407`/0039 remains default off. Real-PG cross-repo integration passed,
+  but a live human consent check and pilot approval remain separate gates.
 - `pnpm test:validator-evidence` checks conservative scorecard metadata display.
   The required Console CI job runs it before building, including legacy,
   malformed, inconsistent-count and missing/future-time cases.
