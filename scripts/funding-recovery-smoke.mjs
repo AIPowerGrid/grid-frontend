@@ -362,14 +362,27 @@ try {
   await page
     .getByRole('button', { name: 'Browser wallet', exact: true })
     .click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  await page.getByText('100 USDC · 1 ETH for gas', { exact: true }).waitFor();
   await page.getByPlaceholder('0.00').fill('1');
   const pay = page.getByRole('button', { name: 'Pay with USDC' });
-  await page.waitForFunction(() =>
-    [...document.querySelectorAll('button')].some(
-      (button) =>
-        button.textContent.includes('Pay with USDC') && !button.disabled
-    )
-  );
+  try {
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('button')].some(
+        (button) =>
+          button.textContent.includes('Pay with USDC') && !button.disabled
+      )
+    );
+  } catch (error) {
+    await page.screenshot({
+      path: `${artifacts}/payable-wallet-failure.png`,
+      fullPage: true
+    });
+    throw new Error(
+      `Payable wallet fixture did not become ready: ${await page.locator('body').innerText()}; calls=${JSON.stringify(await page.evaluate(() => window.walletCalls))}`,
+      { cause: error }
+    );
+  }
   await page.evaluate((key) => {
     window.walletCalls = [];
     const original = Storage.prototype.setItem;
