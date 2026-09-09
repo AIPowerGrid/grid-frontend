@@ -1,5 +1,10 @@
 # Validator Consent: Dark Production Deployment
 
+This is the historical consent deployment record. The current Console artifact
+and patched recovery guidance are in
+[Funding Recovery Deployment](FUNDING_RECOVERY_DEPLOYMENT_2026_09_09.md).
+Do not use the older dependency builds below as an unreviewed rollback target.
+
 ## Security Follow-Up
 
 On September 7, 2026, 21:08-21:10 UTC, production was updated to reviewed

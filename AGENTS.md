@@ -74,6 +74,9 @@ described as deployable until the build and Worker configuration land together.
   of the reviewed compensation page and BFF, anonymous rejection checks, dark
   Core state and rollback target. Deployment is not live recipient consent or
   permission to start a paid pilot.
+- **`FUNDING_RECOVERY_DEPLOYMENT_2026_09_09.md`** - current Console artifact,
+  receipt-storage recovery tests, patched dependencies and live boundary checks.
+  It does not activate global billing or payouts.
 
 ## Local Contracts
 
@@ -137,8 +140,8 @@ described as deployable until the build and Worker configuration land together.
   Core until the node client and supervised rollout are complete.
 - `pnpm test:validator-compensation` validates the v1 message and exact amounts;
   after build, `pnpm test:validator-compensation-smoke` covers the protected
-  payout-consent BFF. Both run in CI. Commit `fecbe1c` is deployed on the Console;
-  Core `84fe0fd6`/0039 keeps compensation off. Real-PG cross-repo integration passed,
+  payout-consent BFF. Both run in CI. Console `98e96a4` preserves this feature;
+  Core `ad5a1257`/0040 keeps compensation off. Real-PG cross-repo integration passed,
   but a live human consent check and pilot approval remain separate gates.
 - `pnpm test:validator-evidence` checks conservative scorecard metadata display.
   The required Console CI job runs it before building, including legacy,
