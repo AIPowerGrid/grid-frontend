@@ -26,6 +26,8 @@ jobs:
         run: corepack enable && corepack prepare pnpm@9.15.5 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
       - name: Check formatting
         run: pnpm format:check
       - name: Lint
@@ -40,6 +42,17 @@ jobs:
         run: pnpm build
       - name: Test canonical account boundary
         run: pnpm test:auth-smoke
+      - name: Install funding-test browser
+        run: |
+          for source in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+            [ -f "$source" ] || continue
+            if grep -Fq 'dl.google.com/linux/chrome' "$source"; then
+              sudo mv "$source" "$RUNNER_TEMP/$(basename "$source").disabled"
+            fi
+          done
+          pnpm exec playwright install --with-deps chromium
+      - name: Test funding receipt recovery
+        run: pnpm test:funding-recovery
       - name: Test key-management proof boundary
         run: pnpm test:key-management
       - name: Test OAuth consent boundary

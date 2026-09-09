@@ -170,6 +170,7 @@ export default function FundingView() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [pendingHash, setPendingHash] = useState<string | null>(null);
   const [pendingAsset, setPendingAsset] = useState<
     FundingAsset['asset'] | null
@@ -219,7 +220,13 @@ export default function FundingView() {
     try {
       const stored = window.localStorage.getItem(PENDING_DEPOSIT_KEY);
       if (!stored) return;
-      const pending = JSON.parse(stored);
+      let pending: unknown;
+      try {
+        pending = JSON.parse(stored);
+      } catch {
+        window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+        return;
+      }
       if (!isPendingDeposit(pending)) {
         window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
         return;
@@ -227,7 +234,9 @@ export default function FundingView() {
       setPendingAsset(pending.asset);
       setPendingHash(pending.txHash);
     } catch {
-      window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+      setStorageError(
+        'Enable browser storage and reload before sending a payment or recovering a saved receipt.'
+      );
     }
   }, []);
 
@@ -451,16 +460,28 @@ export default function FundingView() {
   ) {
     setPendingAsset(asset);
     setPendingHash(txHash);
-    window.localStorage.setItem(
-      PENDING_DEPOSIT_KEY,
-      JSON.stringify({ asset, txHash })
-    );
+    try {
+      window.localStorage.setItem(
+        PENDING_DEPOSIT_KEY,
+        JSON.stringify({ asset, txHash })
+      );
+    } catch {
+      setStorageError(
+        'Keep this tab open until your payment is credited. Its receipt could not be saved; retain the BaseScan transaction link before leaving.'
+      );
+    }
   }
 
   function clearPendingDeposit() {
     setPendingAsset(null);
     setPendingHash(null);
-    window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+    try {
+      window.localStorage.removeItem(PENDING_DEPOSIT_KEY);
+    } catch {
+      setStorageError(
+        'The saved receipt could not be cleared. It may appear again after reload; retrying credit does not send another payment.'
+      );
+    }
   }
 
   async function claim(asset: FundingAsset['asset'], txHash: string) {
@@ -527,6 +548,27 @@ export default function FundingView() {
     setError(null);
     setSuccess(null);
     try {
+      // Require receipt storage before any wallet operation, not after broadcast.
+      try {
+        const stored = window.localStorage.getItem(PENDING_DEPOSIT_KEY);
+        const pending = stored ? JSON.parse(stored) : null;
+        if (isPendingDeposit(pending)) {
+          setPendingAsset(pending.asset);
+          setPendingHash(pending.txHash);
+          setError(
+            'Resolve the pending payment with Retry credit before sending another.'
+          );
+          return;
+        }
+        const probeKey = `${PENDING_DEPOSIT_KEY}.probe`;
+        window.localStorage.setItem(probeKey, '1');
+        window.localStorage.removeItem(probeKey);
+      } catch {
+        setStorageError(
+          'Enable browser storage and reload before sending a payment.'
+        );
+        return;
+      }
       await switchToBase(paymentProvider.provider);
       const provider = new BrowserProvider(paymentProvider.provider);
       const signer = await provider.getSigner();
@@ -653,6 +695,14 @@ export default function FundingView() {
           <AlertCircle className='h-4 w-4' />
           <AlertTitle>Funding not completed</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {storageError && (
+        <Alert>
+          <AlertCircle className='h-4 w-4' />
+          <AlertTitle>Payment receipt storage unavailable</AlertTitle>
+          <AlertDescription>{storageError}</AlertDescription>
         </Alert>
       )}
 
@@ -884,6 +934,7 @@ export default function FundingView() {
                   disabled={
                     submitting ||
                     checkingWallet ||
+                    storageError !== null ||
                     pendingHash !== null ||
                     !amount ||
                     walletProblem !== null
