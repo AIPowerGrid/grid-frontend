@@ -55,6 +55,9 @@ described as deployable until the build and Worker configuration land together.
   Targeted security overrides keep Browserslist at patched 4.28.7 or later and
   prevent vulnerable selector-parser 6.1.0-6.1.2 and incompatible 6.1.3 from returning. Faker is unused
   and removed; do not restore demo-only dependencies to production tooling.
+  Next.js 16.3.3 and Sharp 0.35.4 close the reviewed AVIF image-optimizer
+  advisories. Keep the js-yaml, browser-mapping and provider-utils patched
+  bounds, and the required production dependency audit, on future releases.
 - **`src/app/`** — App Router. `api/` = server route handlers (the BFF); `dashboard/` =
   authed pages; `(auth)/` = sign-in; `api-doc/` = hosted OpenAPI reference.
 - **`src/lib/`** — shared server infra: Auth.js config and the grid v1 client.
@@ -118,6 +121,12 @@ described as deployable until the build and Worker configuration land together.
   credit passthrough, anonymous rejection, and account-mismatch failure.
 - `Console CI / verify` runs the same checks on pushes and pull requests to
   `master` without production credentials.
+- After building, `pnpm test:funding-recovery` runs Playwright against the
+  production server and a loopback Core fixture. It covers desktop/mobile
+  receipt reload, 425/503 retry, already-credited recovery, malformed storage,
+  storage denial and cleanup failure with no wallet calls. CI installs pinned
+  Playwright Chromium and requires this test; fixture sessions never prove a
+  live Google/SIWE ceremony or an on-chain transfer.
 - `pnpm test:key-management` verifies key creation/revocation against a local
   mock Core after building, including bounded pending-creation retry, canceled
   reauthentication, expired proof, failure statuses, and service-refresh denial.

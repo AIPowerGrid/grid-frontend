@@ -82,6 +82,10 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   until Core credits it. Recovery must retry that same hash and must never
   resend the payment. Preflight against Core's advisory remaining daily
   capacity before opening the wallet; Core's locked cap check remains final.
+  New payments also require writable receipt storage before wallet operations.
+  A storage failure after broadcast must retain the in-memory hash and permit
+  credit recovery; display a warning rather than aborting the claim. Receipt
+  cleanup failure cannot turn an already-credited payment into a failed claim.
 
 ## Work Guidance
 
