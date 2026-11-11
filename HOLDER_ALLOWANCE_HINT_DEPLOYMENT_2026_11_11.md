@@ -27,8 +27,7 @@ promotion (grid-core release `6564c295`).
 - PR41 checks passed (one earlier run failed on a hosted-runner DNS outage
   while installing browsers).
 - After promotion: `/` and `/api-doc` returned 200, anonymous
-  `/dashboard/funding` returned 302, the session endpoint 200, an unknown path
-  404.
+  `/dashboard/funding` returned 302, the session endpoint 200, an unknown path 404.
 
 ## Not done
 
