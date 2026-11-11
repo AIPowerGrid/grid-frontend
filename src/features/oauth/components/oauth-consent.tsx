@@ -25,6 +25,11 @@ const scopeCopy = {
   'inference.submit': {
     title: 'Run AI jobs',
     description: 'Submit metered text, image, video, and audio requests.'
+  },
+  offline_access: {
+    title: 'Stay signed in',
+    description:
+      'Keep this access for up to 30 days without asking again, until you remove it or it goes unused.'
   }
 } as const;
 
