@@ -7,14 +7,18 @@ export const oauthRequestSchema = z
   .string()
   .regex(/^oauth_req_[A-Za-z0-9_-]{43}$/);
 
-export const oauthScopeSchema = z.enum(['account.read', 'inference.submit']);
+export const oauthScopeSchema = z.enum([
+  'account.read',
+  'inference.submit',
+  'offline_access'
+]);
 
 export const oauthAuthorizationViewSchema = z.object({
   client_id: z.string().min(1).max(96),
   client_name: z.string().min(1).max(120),
   redirect_host: z.string().min(1).max(253),
   resource: z.string().url().max(512),
-  scopes: z.array(oauthScopeSchema).min(1).max(2),
+  scopes: z.array(oauthScopeSchema).min(1).max(3),
   expires_in: z.number().int().min(0).max(600)
 });
 
