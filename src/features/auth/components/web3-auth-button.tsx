@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { ethers } from 'ethers';
 import { safeCallbackUrl } from '@/lib/safe-callback-url';
+import type { WalletProviderOption } from '@/features/funding/components/wallet-providers';
+import { watchWalletProviders } from '@/features/funding/components/wallet-providers';
 
 export default function Web3AuthButton({
   returnTo,
@@ -24,51 +26,33 @@ export default function Web3AuthButton({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleWeb3SignIn = async () => {
+  const [wallets, setWallets] = useState<WalletProviderOption[]>([]);
+  const [choosing, setChoosing] = useState(false);
+
+  useEffect(() => watchWalletProviders(setWallets), []);
+
+  // Wallets that announce themselves (EIP-6963) are listed by name. The legacy
+  // `window.ethereum` slot is whichever extension won a race, so it is offered
+  // only when no wallet announced itself.
+  const announced = wallets.filter((w) => !w.id.startsWith('injected-'));
+  const options = announced.length ? announced : wallets.slice(0, 1);
+
+  const handleConnectClick = () => {
+    setError(null);
+    if (options.length > 1) {
+      setChoosing(true);
+      return;
+    }
+    void handleWeb3SignIn(options[0]);
+  };
+
+  const handleWeb3SignIn = async (option?: WalletProviderOption) => {
+    setChoosing(false);
     setIsLoading(true);
     setError(null);
 
     try {
-      // Safely detect ethereum provider - handle multiple wallet extensions
-      let ethereum = null;
-
-      // Check for ethereum on window - use try/catch to handle property definition conflicts
-      if (typeof window !== 'undefined') {
-        try {
-          // Try to access ethereum safely
-          const win = window as any;
-
-          // Check if ethereum exists and can be accessed
-          if (win.ethereum) {
-            // Handle case where multiple wallets are installed (ethereum.providers is an array)
-            if (Array.isArray(win.ethereum.providers)) {
-              // Prefer MetaMask if available, otherwise use the first provider
-              ethereum =
-                win.ethereum.providers.find((p: any) => p?.isMetaMask) ||
-                win.ethereum.providers[0];
-            } else if (Array.isArray(win.ethereum)) {
-              // Some wallet extensions expose ethereum as an array directly
-              ethereum =
-                win.ethereum.find((p: any) => p?.isMetaMask) || win.ethereum[0];
-            } else {
-              // Single provider or standard format
-              ethereum = win.ethereum;
-            }
-          } else if (win.web3?.currentProvider) {
-            // Fallback to older web3 providers
-            ethereum = win.web3.currentProvider;
-          }
-        } catch (err) {
-          // If there's an error accessing ethereum, try alternative methods
-          console.warn('Error accessing window.ethereum:', err);
-          // Try direct property access
-          const win = window as any;
-          if (win.metamask) {
-            ethereum = win.metamask;
-          }
-        }
-      }
-
+      const ethereum = option?.provider;
       if (!ethereum) {
         throw new Error(
           'Please install MetaMask or another Web3 wallet extension'
@@ -139,7 +123,7 @@ export default function Web3AuthButton({
         className='mt-4 w-full'
         variant='outline'
         type='button'
-        onClick={handleWeb3SignIn}
+        onClick={handleConnectClick}
         disabled={isLoading}
       >
         {isLoading ? (
@@ -154,37 +138,39 @@ export default function Web3AuthButton({
           </>
         )}
       </Button>
+      {choosing && (
+        <div
+          className='mt-2 flex flex-col gap-2 rounded-md border p-3'
+          role='group'
+          aria-label='Choose a wallet'
+        >
+          <p className='text-center text-xs text-muted-foreground'>
+            Choose the wallet to sign in with
+          </p>
+          {options.map((option) => (
+            <Button
+              key={option.id}
+              className='w-full'
+              variant='outline'
+              type='button'
+              onClick={() => void handleWeb3SignIn(option)}
+            >
+              {option.name}
+            </Button>
+          ))}
+          <Button
+            className='w-full'
+            variant='ghost'
+            type='button'
+            onClick={() => setChoosing(false)}
+          >
+            Cancel
+          </Button>
+        </div>
+      )}
       {error && (
         <p className='mt-2 text-center text-sm text-red-500'>{error}</p>
       )}
     </div>
   );
-}
-
-// Extend Window interface for TypeScript
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: {
-        method: string;
-        params?: unknown[];
-      }) => Promise<unknown>;
-      isMetaMask?: boolean;
-      providers?: Array<{
-        request: (args: {
-          method: string;
-          params?: unknown[];
-        }) => Promise<unknown>;
-        isMetaMask?: boolean;
-      }>;
-    };
-    web3?: {
-      currentProvider?: {
-        request: (args: {
-          method: string;
-          params?: unknown[];
-        }) => Promise<unknown>;
-      };
-    };
-  }
 }
