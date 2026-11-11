@@ -74,7 +74,10 @@ described as deployable until the build and Worker configuration land together.
   of the reviewed compensation page and BFF, anonymous rejection checks, dark
   Core state and rollback target. Deployment is not live recipient consent or
   permission to start a paid pilot.
-- **`FUNDING_RECOVERY_DEPLOYMENT_2026_09_09.md`** - current Console artifact,
+- **`DEPENDENCY_AND_OFFLINE_ACCESS_DEPLOYMENT_2026_11_11.md`** - current Console
+  artifact: dependency advisories cleared, `offline_access` consent line,
+  live boundary checks, and the signed-in checks still owed.
+- **`FUNDING_RECOVERY_DEPLOYMENT_2026_09_09.md`** - previous Console artifact,
   receipt-storage recovery tests, patched dependencies and live boundary checks.
   It does not activate global billing or payouts.
 
