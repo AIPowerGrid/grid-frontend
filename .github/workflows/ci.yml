@@ -57,6 +57,8 @@ jobs:
         run: pnpm test:key-management
       - name: Test OAuth consent boundary
         run: pnpm test:oauth-consent
+      - name: Sign-in wallet choice browser test
+        run: pnpm test:wallet-picker
       - name: Test validator account pairing boundary
         run: pnpm test:validator-pairing
       - name: Test validator compensation boundary

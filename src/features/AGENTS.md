@@ -8,6 +8,10 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
 ## Ownership
 
 - `auth/` — sign-in view + provider buttons (Google, GitHub, Web3). Drives `src/lib/auth`.
+  Wallet sign-in lists the wallets that announce themselves (EIP-6963, shared
+  discovery in `funding/components/wallet-providers.ts`) and asks which to use
+  when there is more than one; it touches no wallet until one is chosen. The
+  legacy `window.ethereum` slot is used only when no wallet announces itself.
 - `oauth/` - explicit remote-agent consent UI. Displays only Core-validated
   client/scopes/destination data, requires a separate approve or deny action,
   and offers fresh Google/wallet proof when Core rejects stale authority.

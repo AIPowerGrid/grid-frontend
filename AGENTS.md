@@ -133,6 +133,10 @@ described as deployable until the build and Worker configuration land together.
   storage denial and cleanup failure with no wallet calls. CI installs pinned
   Playwright Chromium and requires this test; fixture sessions never prove a
   live Google/SIWE ceremony or an on-chain transfer.
+- After building, `pnpm test:wallet-picker` runs Playwright against the built
+  sign-in page with fake announced and legacy wallets: choice by name, cancel,
+  single wallet, legacy-only and no wallet. It stops at the challenge request
+  and needs no Core.
 - `pnpm test:key-management` verifies key creation/revocation against a local
   mock Core after building, including bounded pending-creation retry, canceled
   reauthentication, expired proof, failure statuses, and service-refresh denial.
