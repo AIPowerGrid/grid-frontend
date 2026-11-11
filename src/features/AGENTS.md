@@ -13,6 +13,8 @@ in `src/app/dashboard/<area>/` stay thin and render the matching feature here.
   and offers fresh Google/wallet proof when Core rejects stale authority.
 - `overview/` — dashboard home widgets (pie/area/bar graphs, recent models, quick start,
   about-grid) with skeleton variants for the parallel routes under `dashboard/overview/`.
+  The balance card shows Core's `free.holder_tiers` and `free.holder_bonus_usd` as a
+  one-line hint; it never computes eligibility or amounts itself.
 - `api-key/` — API-key view + account-keys management UI. Create/revoke failures
   remain visible; missing or stale proof offers the existing Google and wallet
   sign-in controls. A creation rejected with 401/403 may be remembered in
