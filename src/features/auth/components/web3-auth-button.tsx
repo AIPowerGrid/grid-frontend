@@ -8,7 +8,10 @@ import { Icons } from '@/components/icons';
 import { ethers } from 'ethers';
 import { safeCallbackUrl } from '@/lib/safe-callback-url';
 import type { WalletProviderOption } from '@/features/funding/components/wallet-providers';
-import { watchWalletProviders } from '@/features/funding/components/wallet-providers';
+import {
+  switchToBase,
+  watchWalletProviders
+} from '@/features/funding/components/wallet-providers';
 
 export default function Web3AuthButton({
   returnTo,
@@ -61,6 +64,17 @@ export default function Web3AuthButton({
 
       // Request account access
       await ethereum.request({ method: 'eth_requestAccounts' });
+
+      // Core's sign-in message names Base (EIP-4361 "Chain ID: 8453"). Wallets
+      // that read that line refuse to sign while another network is active,
+      // so make Base active first. Nothing is sent on-chain.
+      try {
+        await switchToBase(ethereum);
+      } catch {
+        throw new Error(
+          'Switch your wallet to the Base network, then try again. Signing in sends no transaction.'
+        );
+      }
 
       // Get the provider and signer
       const provider = new ethers.BrowserProvider(ethereum);
