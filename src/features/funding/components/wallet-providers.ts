@@ -68,3 +68,30 @@ export function watchWalletProviders(
 
   return () => window.removeEventListener('eip6963:announceProvider', announce);
 }
+
+export const BASE_CHAIN_HEX = '0x2105';
+export const BASESCAN = 'https://basescan.org';
+
+/** Ask the wallet to make Base its active network, adding it if unknown. */
+export async function switchToBase(provider: Eip1193Provider) {
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: BASE_CHAIN_HEX }]
+    });
+  } catch (reason: any) {
+    if (reason?.code !== 4902) throw reason;
+    await provider.request({
+      method: 'wallet_addEthereumChain',
+      params: [
+        {
+          chainId: BASE_CHAIN_HEX,
+          chainName: 'Base',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: ['https://mainnet.base.org'],
+          blockExplorerUrls: [BASESCAN]
+        }
+      ]
+    });
+  }
+}

@@ -36,15 +36,17 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Eip1193Provider, WalletProviderOption } from './wallet-providers';
-import { watchWalletProviders } from './wallet-providers';
+import type { WalletProviderOption } from './wallet-providers';
+import {
+  BASESCAN,
+  switchToBase,
+  watchWalletProviders
+} from './wallet-providers';
 
 const ERC20_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
   'function transfer(address to, uint256 amount) returns (bool)'
 ];
-const BASE_CHAIN_HEX = '0x2105';
-const BASESCAN = 'https://basescan.org';
 const PENDING_DEPOSIT_KEY = 'aipg.pendingDeposit.v1';
 
 interface FundingAsset {
@@ -135,29 +137,6 @@ function isPendingDeposit(value: unknown): value is PendingDeposit {
     typeof candidate.txHash === 'string' &&
     /^0x[0-9a-fA-F]{64}$/.test(candidate.txHash)
   );
-}
-
-async function switchToBase(provider: Eip1193Provider) {
-  try {
-    await provider.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: BASE_CHAIN_HEX }]
-    });
-  } catch (reason: any) {
-    if (reason?.code !== 4902) throw reason;
-    await provider.request({
-      method: 'wallet_addEthereumChain',
-      params: [
-        {
-          chainId: BASE_CHAIN_HEX,
-          chainName: 'Base',
-          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: ['https://mainnet.base.org'],
-          blockExplorerUrls: [BASESCAN]
-        }
-      ]
-    });
-  }
 }
 
 export default function FundingView() {

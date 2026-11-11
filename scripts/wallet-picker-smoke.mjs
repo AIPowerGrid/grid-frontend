@@ -61,15 +61,24 @@ async function waitForApp() {
 }
 
 // Installed in the page before any app script runs.
-function installWallets({ announced, legacy, addresses }) {
+function installWallets({ announced, legacy, addresses, refuseSwitch }) {
+  // Every fake wallet starts on Ethereum mainnet, not Base.
+  window.__chains = {};
   const make = (name) => ({
     walletName: name,
-    request: async ({ method }) => {
+    request: async ({ method, params }) => {
       window.__walletCalls.push(`${name}:${method}`);
+      if (method === 'wallet_switchEthereumChain') {
+        if (refuseSwitch) {
+          throw Object.assign(new Error('User rejected'), { code: 4001 });
+        }
+        window.__chains[name] = params[0].chainId;
+        return null;
+      }
       if (method === 'eth_requestAccounts' || method === 'eth_accounts') {
         return [addresses[name]];
       }
-      if (method === 'eth_chainId') return '0x2105';
+      if (method === 'eth_chainId') return window.__chains[name] ?? '0x1';
       throw new Error(`unsupported ${method}`);
     }
   });
@@ -143,6 +152,10 @@ try {
       assert.equal(nonceBodies[0].address.toLowerCase(), ADDRESSES.Beta);
       const calls = await page.evaluate(() => window.__walletCalls);
       assert.ok(calls.includes('Beta:eth_requestAccounts'));
+      // The wallet was on another network: it is moved to Base before the
+      // challenge is requested, so the EIP-4361 chain line can be signed.
+      assert.ok(calls.includes('Beta:wallet_switchEthereumChain'));
+      assert.equal(await page.evaluate(() => window.__chains.Beta), '0x2105');
       assert.ok(
         calls.every((call) => call.startsWith('Beta:')),
         calls.join()
@@ -180,6 +193,17 @@ try {
     }
   );
 
+  // The user refuses the network switch: a plain message, no challenge.
+  await scenario(
+    browser,
+    { announced: ['Alpha'], legacy: false, refuseSwitch: true },
+    async ({ page, connect, nonceBodies }) => {
+      await connect.click();
+      await page.getByText('Switch your wallet to the Base network').waitFor();
+      assert.equal(nonceBodies.length, 0);
+    }
+  );
+
   // No wallet at all: a plain message, no request.
   await scenario(
     browser,
@@ -192,7 +216,7 @@ try {
   );
 
   console.log(
-    'Wallet-picker choice, cancel, single-wallet, legacy and no-wallet smoke passed'
+    'Wallet-picker choice, cancel, single-wallet, legacy, Base-switch and no-wallet smoke passed'
   );
 } finally {
   await browser?.close();
