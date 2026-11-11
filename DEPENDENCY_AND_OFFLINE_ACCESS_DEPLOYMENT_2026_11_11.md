@@ -25,8 +25,8 @@ then inspected and resolved to the recorded immutable deployment.
   moderate advisories remain.
 - The OAuth consent view accepts `offline_access` and shows it as "Stay
   signed in". Core enabled refresh tokens after this promotion.
-- This build also publishes the commits merged after `98e96a4` that had not
-  been deployed.
+- The only other commit since the previous artifact (`98e96a4`) is its
+  documentation record (#32).
 
 ## Verification
 
