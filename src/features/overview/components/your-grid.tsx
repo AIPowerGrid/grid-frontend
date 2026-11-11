@@ -33,11 +33,40 @@ interface AccountWorkers {
   workers: WorkerRow[];
 }
 
+interface HolderTier {
+  min_aipg: number;
+  daily_usd: number;
+}
+
+/** One line telling the account what holding AIPG adds to the daily allowance. */
+export function holderAllowanceHint(free: any): string | null {
+  const tiers: HolderTier[] = Array.isArray(free?.holder_tiers)
+    ? free.holder_tiers.filter(
+        (t: any) => Number(t?.min_aipg) > 0 && Number(t?.daily_usd) > 0
+      )
+    : [];
+  if (!tiers.length) return null;
+  const usd = (n: number) => `$${Number(n).toFixed(2)}`;
+  const bonus = Number(free?.holder_bonus_usd ?? 0);
+  if (bonus > 0) {
+    return `Includes ${usd(bonus)} a day for holding AIPG in your sign-in wallet.`;
+  }
+  const lowest = tiers.reduce((a, b) => (b.min_aipg < a.min_aipg ? b : a));
+  const most = Math.max(...tiers.map((t) => Number(t.daily_usd)));
+  const amount =
+    most > lowest.daily_usd
+      ? `${usd(lowest.daily_usd)} to ${usd(most)}`
+      : usd(lowest.daily_usd);
+  return `Hold ${Number(lowest.min_aipg).toLocaleString('en-US')}+ AIPG in your sign-in wallet for ${amount} more a day. Counted from the UTC day after the tokens arrive.`;
+}
+
 export function YourGrid() {
   const [acct, setAcct] = useState<any>(null);
   const [w, setW] = useState<AccountWorkers | null>(null);
   const [credits, setCredits] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const holderHint = loading ? null : holderAllowanceHint(credits?.free);
 
   useEffect(() => {
     (async () => {
@@ -144,6 +173,14 @@ export function YourGrid() {
               <div className='text-xs text-muted-foreground'>
                 Resets at UTC midnight
               </div>
+              {holderHint && (
+                <div
+                  className='max-w-[18rem] text-xs text-muted-foreground'
+                  data-testid='holder-allowance-hint'
+                >
+                  {holderHint}
+                </div>
+              )}
             </div>
 
             <div>
